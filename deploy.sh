@@ -39,10 +39,11 @@ echo -e "  ${YELLOW}3) HAProxy         - Lightweight / Low Latency${NC}"
 echo ""
 read -r -p "$(echo -e "  ${CYAN}SELECT PROXY ENGINE [1-3] (Default 1): ${RESET}")" ENGINE_CHOICE
 
+# UPDATED: Added PROXY_ENV to pass to the container
 case "$ENGINE_CHOICE" in
-    2) ENGINE="Envoy Proxy";;
-    3) ENGINE="HAProxy";;
-    *) ENGINE="OpenResty";;
+    2) ENGINE="Envoy Proxy"; PROXY_ENV="envoy";;
+    3) ENGINE="HAProxy"; PROXY_ENV="haproxy";;
+    *) ENGINE="OpenResty"; PROXY_ENV="openresty";;
 esac
 echo -e "  ${GREEN}SELECTED PROXY ENGINE: ${ENGINE}${RESET}"
 echo ""
@@ -111,13 +112,17 @@ if [ $? -ne 0 ]; then
 fi
 
 loading "DEPLOYING TO CLOUD RUN IN ${REGION}"
+
+# UPDATED: Added --set-env-vars PROXY_ENGINE="$PROXY_ENV"
 gcloud run deploy "$SERVICE_NAME" \
   --image "gcr.io/${PROJECT_ID}/${SERVICE_NAME}" \
   --platform managed --region "$REGION" \
   --cpu "$CPU" --memory "$RAM" --port 8080 \
   --concurrency 1000 --cpu-boost --no-cpu-throttling \
   --timeout 3600 --min-instances 1 --max-instances "$MAX_INSTANCES" \
-  --allow-unauthenticated --project="$PROJECT_ID" --quiet > deploy.log 2>&1
+  --allow-unauthenticated --project="$PROJECT_ID" \
+  --set-env-vars PROXY_ENGINE="$PROXY_ENV" \
+  --quiet > deploy.log 2>&1
 
 if [ $? -ne 0 ]; then 
     echo -e "  ${RED}DEPLOYMENT FAILED. CHECK LOGS BELOW:${RESET}"
@@ -146,7 +151,7 @@ echo -e "  ${YELLOW}━━━━━━━━━━━━━━━━━━━━
 echo -e "  ${GREEN}  VLESS${RESET}        | WS: ${CYAN}/vless-saeka${RESET}    | gRPC Service: ${CYAN}vless-saeka-grpc${RESET}"
 echo -e "  ${GREEN}  VMess${RESET}        | WS: ${CYAN}/vmess-saeka${RESET}    | gRPC Service: ${CYAN}vmess-saeka-grpc${RESET}"
 echo -e "  ${GREEN}  TROJAN${RESET}       | WS: ${CYAN}/saeka-tojirp${RESET}   | gRPC Service: ${CYAN}saeka-tojirp-grpc${RESET}"
-echo -e "  ${GREEN}  Shadowsocks${RESET}  | WS: ${CYAN}/ss-saeka${RESET}      | gRPC Service: ${CYAN}ss-saeka-grpc${RESET}"
+echo -e "  ${GREEN}  Shadowsocks${RESET}  | WS: ${CYAN}/ss-saeka${RESET}       | gRPC Service: ${CYAN}ss-saeka-grpc${RESET}"
 echo -e "  ${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
 
 echo ""
