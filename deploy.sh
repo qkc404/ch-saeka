@@ -98,7 +98,7 @@ case "$MODE_CHOICE" in
         read -r -p "$(echo -e "  ${CYAN}MAX INSTANCES (1/2/4/8): ${RESET}")" MAX_INSTANCES
         MODE="CUSTOM"
         ;;
-    *) CPU="4"; RAM="16Gi"; MODE="ULTRA"; MAX_INSTANCES="4";;
+    *) CPU="4"; RAM="8Gi"; MODE="ULTRA"; MAX_INSTANCES="4";;
 esac
 
 echo ""
