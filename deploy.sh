@@ -81,7 +81,7 @@ echo -e "  ${CYAN}SELECT MODE:${RESET}"
 echo -e "  ${YELLOW}1) BROWSING     (1 vCPU / 2Gi  RAM)${RESET}"
 echo -e "  ${YELLOW}2) STREAMING    (2 vCPU / 4Gi  RAM)${RESET}"
 echo -e "  ${YELLOW}3) GAMING       (4 vCPU / 8Gi  RAM)${RESET}"
-echo -e "  ${YELLOW}4) ULTRA        (8 vCPU / 16Gi RAM)${RESET}"
+echo -e "  ${YELLOW}4) ULTRA        (4 vCPU / 16Gi RAM)${RESET}"
 echo -e "  ${YELLOW}5) CUSTOM${RESET}"
 echo ""
 read -r -p "$(echo -e "  ${CYAN}CHOICE: ${RESET}")" MODE_CHOICE
@@ -98,7 +98,7 @@ case "$MODE_CHOICE" in
         read -r -p "$(echo -e "  ${CYAN}MAX INSTANCES (1/2/4/8): ${RESET}")" MAX_INSTANCES
         MODE="CUSTOM"
         ;;
-    *) CPU="8"; RAM="16Gi"; MODE="ULTRA"; MAX_INSTANCES="4";;
+    *) CPU="4"; RAM="16Gi"; MODE="ULTRA"; MAX_INSTANCES="4";;
 esac
 
 echo ""
@@ -153,47 +153,6 @@ echo -e "  ${GREEN}  VMess${RESET}        | WS: ${CYAN}/vmess-saeka${RESET}    |
 echo -e "  ${GREEN}  TROJAN${RESET}       | WS: ${CYAN}/saeka-tojirp${RESET}   | gRPC Service: ${CYAN}saeka-tojirp-grpc${RESET}"
 echo -e "  ${GREEN}  Shadowsocks${RESET}  | WS: ${CYAN}/ss-saeka${RESET}       | gRPC Service: ${CYAN}ss-saeka-grpc${RESET}"
 echo -e "  ${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
-
-echo ""
-echo -e "  ${GREEN}📋 YOUR VLESS gRPC OUTBOUND CONFIG FOR SAEKA:${RESET}"
-echo -e "  ${YELLOW}────────────────────────────────────────────────────────────${RESET}"
-cat <<EOF
-{
-  "outbounds": [
-    {
-      "tag": "proxy",
-      "protocol": "vless",
-      "settings": {
-        "vnext": [
-          {
-            "address": "firebaseremoteconfigrealtime.googleapis.com",
-            "port": 443,
-            "users": [
-              {
-                "id": "saeka",
-                "encryption": "none"
-              }
-            ]
-          }
-        ]
-      },
-      "streamSettings": {
-        "network": "grpc",
-        "security": "tls",
-        "tlsSettings": {
-          "serverName": "firebaseremoteconfigrealtime.googleapis.com",
-          "allowInsecure": true
-        },
-        "grpcSettings": {
-          "serviceName": "vless-saeka-grpc",
-          "authority": "${CLEAN_HOST}"
-        }
-      }
-    }
-  ]
-}
-EOF
-echo -e "  ${YELLOW}────────────────────────────────────────────────────────────${RESET}"
 echo ""
 
 # Cleanup trap registration
