@@ -74,7 +74,7 @@ static_resources:
   # HTTP/1.1, WebSocket, HTTPUpgrade, and XHTTP Clusters
   - name: xray_10000
     type: STATIC
-    connect_timeout: 1s
+    connect_timeout: 10s
     load_assignment:
       cluster_name: xray_10000
       endpoints:
@@ -82,7 +82,7 @@ static_resources:
         - endpoint: { address: { socket_address: { address: 127.0.0.1, port_value: 10000 } } }
   - name: xray_10001
     type: STATIC
-    connect_timeout: 1s
+    connect_timeout: 10s
     load_assignment:
       cluster_name: xray_10001
       endpoints:
@@ -90,7 +90,7 @@ static_resources:
         - endpoint: { address: { socket_address: { address: 127.0.0.1, port_value: 10001 } } }
   - name: xray_10002
     type: STATIC
-    connect_timeout: 1s
+    connect_timeout: 10s
     load_assignment:
       cluster_name: xray_10002
       endpoints:
@@ -98,7 +98,7 @@ static_resources:
         - endpoint: { address: { socket_address: { address: 127.0.0.1, port_value: 10002 } } }
   - name: xray_10003
     type: STATIC
-    connect_timeout: 1s
+    connect_timeout: 10s
     load_assignment:
       cluster_name: xray_10003
       endpoints:
@@ -106,7 +106,7 @@ static_resources:
         - endpoint: { address: { socket_address: { address: 127.0.0.1, port_value: 10003 } } }
   - name: xray_10004
     type: STATIC
-    connect_timeout: 1s
+    connect_timeout: 10s
     load_assignment:
       cluster_name: xray_10004
       endpoints:
@@ -114,7 +114,7 @@ static_resources:
         - endpoint: { address: { socket_address: { address: 127.0.0.1, port_value: 10004 } } }
   - name: xray_10005
     type: STATIC
-    connect_timeout: 1s
+    connect_timeout: 10s
     load_assignment:
       cluster_name: xray_10005
       endpoints:
@@ -122,7 +122,7 @@ static_resources:
         - endpoint: { address: { socket_address: { address: 127.0.0.1, port_value: 10005 } } }
   - name: xray_10006
     type: STATIC
-    connect_timeout: 1s
+    connect_timeout: 10s
     load_assignment:
       cluster_name: xray_10006
       endpoints:
@@ -130,7 +130,7 @@ static_resources:
         - endpoint: { address: { socket_address: { address: 127.0.0.1, port_value: 10006 } } }
   - name: xray_10007
     type: STATIC
-    connect_timeout: 1s
+    connect_timeout: 10s
     load_assignment:
       cluster_name: xray_10007
       endpoints:
@@ -138,7 +138,7 @@ static_resources:
         - endpoint: { address: { socket_address: { address: 127.0.0.1, port_value: 10007 } } }
   - name: xray_10008
     type: STATIC
-    connect_timeout: 1s
+    connect_timeout: 10s
     load_assignment:
       cluster_name: xray_10008
       endpoints:
@@ -146,7 +146,7 @@ static_resources:
         - endpoint: { address: { socket_address: { address: 127.0.0.1, port_value: 10008 } } }
   - name: xray_10009
     type: STATIC
-    connect_timeout: 1s
+    connect_timeout: 10s
     load_assignment:
       cluster_name: xray_10009
       endpoints:
@@ -154,7 +154,7 @@ static_resources:
         - endpoint: { address: { socket_address: { address: 127.0.0.1, port_value: 10009 } } }
   - name: xray_10010
     type: STATIC
-    connect_timeout: 1s
+    connect_timeout: 10s
     load_assignment:
       cluster_name: xray_10010
       endpoints:
@@ -162,7 +162,7 @@ static_resources:
         - endpoint: { address: { socket_address: { address: 127.0.0.1, port_value: 10010 } } }
   - name: xray_10011
     type: STATIC
-    connect_timeout: 1s
+    connect_timeout: 10s
     load_assignment:
       cluster_name: xray_10011
       endpoints:
@@ -172,7 +172,7 @@ static_resources:
   # gRPC Clusters (HTTP/2 enabled)
   - name: xray_10012
     type: STATIC
-    connect_timeout: 1s
+    connect_timeout: 10s
     typed_extension_protocol_options:
       envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
         "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
@@ -185,7 +185,7 @@ static_resources:
         - endpoint: { address: { socket_address: { address: 127.0.0.1, port_value: 10012 } } }
   - name: xray_10013
     type: STATIC
-    connect_timeout: 1s
+    connect_timeout: 10s
     typed_extension_protocol_options:
       envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
         "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
@@ -198,7 +198,7 @@ static_resources:
         - endpoint: { address: { socket_address: { address: 127.0.0.1, port_value: 10013 } } }
   - name: xray_10014
     type: STATIC
-    connect_timeout: 1s
+    connect_timeout: 10s
     typed_extension_protocol_options:
       envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
         "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
@@ -211,7 +211,7 @@ static_resources:
         - endpoint: { address: { socket_address: { address: 127.0.0.1, port_value: 10014 } } }
   - name: xray_10015
     type: STATIC
-    connect_timeout: 1s
+    connect_timeout: 10s
     typed_extension_protocol_options:
       envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
         "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
