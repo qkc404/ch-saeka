@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <title>404 Not found</title>
     <style>
-        /* Fixed layout enforcing rigid pixel dimensions to prevent auto-resizing */
         body {
             background-color: #ffffff;
             color: #000000;
@@ -26,9 +25,6 @@
             z-index: 2;
         }
 
-        /* 
-         * GLITCH & CORRUPTION ANIMATIONS
-         */
         .glitch-text {
             position: relative;
             font-size: 22px;
@@ -44,7 +40,7 @@
             position: absolute;
             top: 0;
             left: 0;
-            width: 800px; /* Fixed width */
+            width: 800px;
             background: #ffffff;
             overflow: hidden;
         }
@@ -69,7 +65,7 @@
             border: 2px solid #000;
             position: relative;
             display: inline-block;
-            width: 400px; /* Fixed width */
+            width: 400px;
             background: #fff;
         }
 
@@ -77,9 +73,6 @@
             animation: shake 0.4s infinite;
         }
 
-        /* 
-         * BUTTON STYLING
-         */
         .btn-wrapper {
             width: 800px;
             text-align: center;
@@ -89,8 +82,8 @@
             background-color: #0056b3;
             color: #ffffff;
             border: none;
-            width: 300px; /* Fixed width */
-            height: 60px; /* Fixed height */
+            width: 300px;
+            height: 60px;
             font-size: 18px;
             font-weight: bold;
             font-family: "Courier New", Courier, monospace;
@@ -114,7 +107,6 @@
             box-shadow: 0px 0px 0px #000000;
         }
 
-        /* Background Scanline Overlay */
         .scanlines {
             position: absolute;
             top: 0;
@@ -132,7 +124,6 @@
             );
         }
 
-        /* Glitch Keyframes */
         @keyframes glitch-anim-1 {
             0% { clip: rect(12px, 9999px, 24px, 0); }
             20% { clip: rect(55px, 9999px, 78px, 0); }
@@ -170,17 +161,14 @@
     <div class="scanlines"></div>
 
     <div class="container">
-        <!-- Main Message -->
         <div class="glitch-text" data-text="LAB EXPIRATION">
             LAB EXPIRATION AUTO DETECT FROM QWIKLABS
         </div>
 
-        <!-- Duration Display -->
         <div class="duration-display glitch-text" id="durationTimer" data-text="HOST DURATION: 05:00:00">
             HOST DURATION: 05:00:00
         </div>
 
-        <!-- Action Button -->
         <div class="btn-wrapper">
             <button class="action-btn" onclick="window.location.href='https://qkc404.github.io/saeka-gcp-panel'">
                 ACCESS PANEL
@@ -189,23 +177,29 @@
     </div>
 
     <script>
-        // Simulated Timer & Corruption Effect script
-        let hours = 4;
-        let minutes = 59;
-        let seconds = 59;
-        
+        const DURATION_MS = 5 * 60 * 60 * 1000;
+        let endTime = localStorage.getItem('qwiklabs_end_time');
+
+        if (!endTime) {
+            endTime = Date.now() + DURATION_MS;
+            localStorage.setItem('qwiklabs_end_time', endTime);
+        }
+
         const timerElement = document.getElementById('durationTimer');
 
-        setInterval(() => {
-            seconds--;
-            if (seconds < 0) {
-                seconds = 59;
-                minutes--;
-                if (minutes < 0) {
-                    minutes = 59;
-                    hours--;
-                }
+        function updateRealTimer() {
+            const now = Date.now();
+            const remaining = Math.max(0, endTime - now);
+
+            if (remaining === 0) {
+                timerElement.innerHTML = "HOST DURATION: 00:00:00";
+                return;
             }
+
+            const totalSeconds = Math.floor(remaining / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
 
             const formatTime = (time) => time < 10 ? `0${time}` : time;
             const timeString = `HOST DURATION: 0${hours}:${formatTime(minutes)}:${formatTime(seconds)}`;
@@ -213,14 +207,16 @@
             timerElement.innerHTML = timeString;
             timerElement.setAttribute('data-text', timeString);
 
-            // Random aggressive corruption spike
             if (Math.random() > 0.85) {
                 timerElement.classList.add('corrupted');
                 setTimeout(() => {
                     timerElement.classList.remove('corrupted');
                 }, 200);
             }
-        }, 1000);
+        }
+
+        setInterval(updateRealTimer, 1000);
+        updateRealTimer();
     </script>
 </body>
 </html>
