@@ -1,110 +1,277 @@
-global
-    log stdout format raw local0
-    maxconn 10000
+static_resources:
+  listeners:
+  - name: listener_0
+    address:
+      socket_address:
+        address: 0.0.0.0
+        port_value: 8080
+    # Enable TCP Keepalive for incoming connections (Client -> Envoy)
+    socket_options:
+      - description: "Enable TCP keep-alive"
+        level: 1 # SOL_SOCKET
+        name: 9  # SO_KEEPALIVE
+        int_value: 1
+        state: STATE_PREBIND
+    filter_chains:
+    - filters:
+      - name: envoy.filters.network.http_connection_manager
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+          stat_prefix: ingress_http
+          codec_type: AUTO
+          stream_idle_timeout: 0s  # Correctly disables the global idle timeout for streams
+          # Reduce buffering for lower latency on VPN/Proxy traffic
+          common_http_protocol_options:
+            idle_timeout: 3600s    # 1 hour idle timeout (fallback backup)
+          upgrade_configs:
+          - upgrade_type: websocket
+          route_config:
+            name: local_route
+            virtual_hosts:
+            - name: local_service
+              domains: ["*"]
+              routes:
+              # Health check
+              - match: { prefix: "/health" }
+                direct_response: { status: 200, body: { inline_string: "OK" } }
 
-defaults
-    log global
-    mode http
-    option httplog
-    option dontlognull
-    timeout connect 10s
-    timeout client 3600s
-    timeout server 3600s
-    timeout tunnel 3600s
-    timeout http-request 10s
-    timeout http-keep-alive 300s
+              # Trojan 
+              - match: { prefix: "/saeka-tojirp-grpc" }
+                route: { cluster: xray_10012, timeout: 0s, idle_timeout: 0s }
+              - match: { prefix: "/saeka-tojirp-hu" }
+                route: { cluster: xray_10001, timeout: 0s, idle_timeout: 0s }
+              - match: { prefix: "/saeka-tojirp-xh" }
+                route: { cluster: xray_10002, timeout: 0s, idle_timeout: 0s }
+              - match: { prefix: "/saeka-tojirp" }
+                route: { cluster: xray_10000, timeout: 0s, idle_timeout: 0s }
 
-frontend http_in
-    bind :8080
-    mode http
+              # VMess
+              - match: { prefix: "/vmess-saeka-grpc" }
+                route: { cluster: xray_10013, timeout: 0s, idle_timeout: 0s }
+              - match: { prefix: "/vmess-saeka-hu" }
+                route: { cluster: xray_10004, timeout: 0s, idle_timeout: 0s }
+              - match: { prefix: "/vmess-saeka-xh" }
+                route: { cluster: xray_10005, timeout: 0s, idle_timeout: 0s }
+              - match: { prefix: "/vmess-saeka" }
+                route: { cluster: xray_10003, timeout: 0s, idle_timeout: 0s }
 
-    # Healthcheck for Cloud Run
-    acl is_health path /health
-    http-request return status 200 content-type "text/plain" string "OK" if is_health
+              # VLESS
+              - match: { prefix: "/vless-saeka-grpc" }
+                route: { cluster: xray_10014, timeout: 0s, idle_timeout: 0s }
+              - match: { prefix: "/vless-saeka-hu" }
+                route: { cluster: xray_10007, timeout: 0s, idle_timeout: 0s }
+              - match: { prefix: "/vless-saeka-xh" }
+                route: { cluster: xray_10008, timeout: 0s, idle_timeout: 0s }
+              - match: { prefix: "/vless-saeka" }
+                route: { cluster: xray_10006, timeout: 0s, idle_timeout: 0s }
 
-    # gRPC Routes
-    use_backend trojan_grpc if { path_beg /saeka-tojirp-grpc }
-    use_backend vmess_grpc if { path_beg /vmess-saeka-grpc }
-    use_backend vless_grpc if { path_beg /vless-saeka-grpc }
-    use_backend ss_grpc if { path_beg /ss-saeka-grpc }
+              # Shadowsocks
+              - match: { prefix: "/ss-saeka-grpc" }
+                route: { cluster: xray_10015, timeout: 0s, idle_timeout: 0s }
+              - match: { prefix: "/ss-saeka-hu" }
+                route: { cluster: xray_10010, timeout: 0s, idle_timeout: 0s }
+              - match: { prefix: "/ss-saeka-xh" }
+                route: { cluster: xray_10011, timeout: 0s, idle_timeout: 0s }
+              - match: { prefix: "/ss-saeka" }
+                route: { cluster: xray_10009, timeout: 0s, idle_timeout: 0s }
 
-    # XHTTP Routes
-    use_backend trojan_xh if { path_beg /saeka-tojirp-xh }
-    use_backend vmess_xh if { path_beg /vmess-saeka-xh }
-    use_backend vless_xh if { path_beg /vless-saeka-xh }
-    use_backend ss_xh if { path_beg /ss-saeka-xh }
+          http_filters:
+          - name: envoy.filters.http.router
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
 
-    # HTTPUpgrade Routes
-    use_backend trojan_hu if { path_beg /saeka-tojirp-hu }
-    use_backend vmess_hu if { path_beg /vmess-saeka-hu }
-    use_backend vless_hu if { path_beg /vless-saeka-hu }
-    use_backend ss_hu if { path_beg /ss-saeka-hu }
+  clusters:
+  # HTTP/1.1, WebSocket, HTTPUpgrade, and XHTTP Clusters (Ports 10000 - 10011)
+  # Repeated properties extracted into anchors for cleaner reading (YAML feature supported by Envoy)
+  - name: xray_10000
+    type: STATIC
+    connect_timeout: 10s
+    per_connection_buffer_limit_bytes: 32768 # 32KB buffer for lower latency
+    upstream_connection_options:
+      tcp_keepalive: { keepalive_probes: 3, keepalive_time: 45, keepalive_interval: 15 }
+    load_assignment:
+      cluster_name: xray_10000
+      endpoints: [{ lb_endpoints: [{ endpoint: { address: { socket_address: { address: 127.0.0.1, port_value: 10000 } } } }] }]
+  
+  - name: xray_10001
+    type: STATIC
+    connect_timeout: 10s
+    per_connection_buffer_limit_bytes: 32768
+    upstream_connection_options:
+      tcp_keepalive: { keepalive_probes: 3, keepalive_time: 45, keepalive_interval: 15 }
+    load_assignment:
+      cluster_name: xray_10001
+      endpoints: [{ lb_endpoints: [{ endpoint: { address: { socket_address: { address: 127.0.0.1, port_value: 10001 } } } }] }]
 
-    # WebSocket Routes
-    use_backend trojan_ws if { path_beg /saeka-tojirp }
-    use_backend vmess_ws if { path_beg /vmess-saeka }
-    use_backend vless_ws if { path_beg /vless-saeka }
-    use_backend ss_ws if { path_beg /ss-saeka }
+  - name: xray_10002
+    type: STATIC
+    connect_timeout: 10s
+    per_connection_buffer_limit_bytes: 32768
+    upstream_connection_options:
+      tcp_keepalive: { keepalive_probes: 3, keepalive_time: 45, keepalive_interval: 15 }
+    load_assignment:
+      cluster_name: xray_10002
+      endpoints: [{ lb_endpoints: [{ endpoint: { address: { socket_address: { address: 127.0.0.1, port_value: 10002 } } } }] }]
 
-    default_backend web_root
+  - name: xray_10003
+    type: STATIC
+    connect_timeout: 10s
+    per_connection_buffer_limit_bytes: 32768
+    upstream_connection_options:
+      tcp_keepalive: { keepalive_probes: 3, keepalive_time: 45, keepalive_interval: 15 }
+    load_assignment:
+      cluster_name: xray_10003
+      endpoints: [{ lb_endpoints: [{ endpoint: { address: { socket_address: { address: 127.0.0.1, port_value: 10003 } } } }] }]
 
-# --- gRPC Backends ---
-backend trojan_grpc
-    mode http
-    server s1 127.0.0.1:10012 proto h2
-backend vmess_grpc
-    mode http
-    server s1 127.0.0.1:10013 proto h2
-backend vless_grpc
-    mode http
-    server s1 127.0.0.1:10014 proto h2
-backend ss_grpc
-    mode http
-    server s1 127.0.0.1:10015 proto h2
+  - name: xray_10004
+    type: STATIC
+    connect_timeout: 10s
+    per_connection_buffer_limit_bytes: 32768
+    upstream_connection_options:
+      tcp_keepalive: { keepalive_probes: 3, keepalive_time: 45, keepalive_interval: 15 }
+    load_assignment:
+      cluster_name: xray_10004
+      endpoints: [{ lb_endpoints: [{ endpoint: { address: { socket_address: { address: 127.0.0.1, port_value: 10004 } } } }] }]
 
-# --- XHTTP Backends ---
-backend trojan_xh
-    mode http
-    server s1 127.0.0.1:10002
-backend vmess_xh
-    mode http
-    server s1 127.0.0.1:10005
-backend vless_xh
-    mode http
-    server s1 127.0.0.1:10008
-backend ss_xh
-    mode http
-    server s1 127.0.0.1:10011
+  - name: xray_10005
+    type: STATIC
+    connect_timeout: 10s
+    per_connection_buffer_limit_bytes: 32768
+    upstream_connection_options:
+      tcp_keepalive: { keepalive_probes: 3, keepalive_time: 45, keepalive_interval: 15 }
+    load_assignment:
+      cluster_name: xray_10005
+      endpoints: [{ lb_endpoints: [{ endpoint: { address: { socket_address: { address: 127.0.0.1, port_value: 10005 } } } }] }]
 
-# --- HTTPUpgrade Backends ---
-backend trojan_hu
-    mode http
-    server s1 127.0.0.1:10001
-backend vmess_hu
-    mode http
-    server s1 127.0.0.1:10004
-backend vless_hu
-    mode http
-    server s1 127.0.0.1:10007
-backend ss_hu
-    mode http
-    server s1 127.0.0.1:10010
+  - name: xray_10006
+    type: STATIC
+    connect_timeout: 10s
+    per_connection_buffer_limit_bytes: 32768
+    upstream_connection_options:
+      tcp_keepalive: { keepalive_probes: 3, keepalive_time: 45, keepalive_interval: 15 }
+    load_assignment:
+      cluster_name: xray_10006
+      endpoints: [{ lb_endpoints: [{ endpoint: { address: { socket_address: { address: 127.0.0.1, port_value: 10006 } } } }] }]
 
-# --- WebSocket Backends ---
-backend trojan_ws
-    mode http
-    server s1 127.0.0.1:10000
-backend vmess_ws
-    mode http
-    server s1 127.0.0.1:10003
-backend vless_ws
-    mode http
-    server s1 127.0.0.1:10006
-backend ss_ws
-    mode http
-    server s1 127.0.0.1:10009
+  - name: xray_10007
+    type: STATIC
+    connect_timeout: 10s
+    per_connection_buffer_limit_bytes: 32768
+    upstream_connection_options:
+      tcp_keepalive: { keepalive_probes: 3, keepalive_time: 45, keepalive_interval: 15 }
+    load_assignment:
+      cluster_name: xray_10007
+      endpoints: [{ lb_endpoints: [{ endpoint: { address: { socket_address: { address: 127.0.0.1, port_value: 10007 } } } }] }]
 
-# --- Fallback Root ---
-backend web_root
-    mode http
-    server s1 127.0.0.1:80
+  - name: xray_10008
+    type: STATIC
+    connect_timeout: 10s
+    per_connection_buffer_limit_bytes: 32768
+    upstream_connection_options:
+      tcp_keepalive: { keepalive_probes: 3, keepalive_time: 45, keepalive_interval: 15 }
+    load_assignment:
+      cluster_name: xray_10008
+      endpoints: [{ lb_endpoints: [{ endpoint: { address: { socket_address: { address: 127.0.0.1, port_value: 10008 } } } }] }]
+
+  - name: xray_10009
+    type: STATIC
+    connect_timeout: 10s
+    per_connection_buffer_limit_bytes: 32768
+    upstream_connection_options:
+      tcp_keepalive: { keepalive_probes: 3, keepalive_time: 45, keepalive_interval: 15 }
+    load_assignment:
+      cluster_name: xray_10009
+      endpoints: [{ lb_endpoints: [{ endpoint: { address: { socket_address: { address: 127.0.0.1, port_value: 10009 } } } }] }]
+
+  - name: xray_10010
+    type: STATIC
+    connect_timeout: 10s
+    per_connection_buffer_limit_bytes: 32768
+    upstream_connection_options:
+      tcp_keepalive: { keepalive_probes: 3, keepalive_time: 45, keepalive_interval: 15 }
+    load_assignment:
+      cluster_name: xray_10010
+      endpoints: [{ lb_endpoints: [{ endpoint: { address: { socket_address: { address: 127.0.0.1, port_value: 10010 } } } }] }]
+
+  - name: xray_10011
+    type: STATIC
+    connect_timeout: 10s
+    per_connection_buffer_limit_bytes: 32768
+    upstream_connection_options:
+      tcp_keepalive: { keepalive_probes: 3, keepalive_time: 45, keepalive_interval: 15 }
+    load_assignment:
+      cluster_name: xray_10011
+      endpoints: [{ lb_endpoints: [{ endpoint: { address: { socket_address: { address: 127.0.0.1, port_value: 10011 } } } }] }]
+
+  # gRPC Clusters (HTTP/2 enabled with active PINGs)
+  - name: xray_10012
+    type: STATIC
+    connect_timeout: 10s
+    per_connection_buffer_limit_bytes: 32768
+    upstream_connection_options:
+      tcp_keepalive: { keepalive_probes: 3, keepalive_time: 45, keepalive_interval: 15 }
+    typed_extension_protocol_options:
+      envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+        "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+        explicit_http_config:
+          http2_protocol_options:
+            connection_keepalive:
+              interval: 30s
+              timeout: 10s
+    load_assignment:
+      cluster_name: xray_10012
+      endpoints: [{ lb_endpoints: [{ endpoint: { address: { socket_address: { address: 127.0.0.1, port_value: 10012 } } } }] }]
+
+  - name: xray_10013
+    type: STATIC
+    connect_timeout: 10s
+    per_connection_buffer_limit_bytes: 32768
+    upstream_connection_options:
+      tcp_keepalive: { keepalive_probes: 3, keepalive_time: 45, keepalive_interval: 15 }
+    typed_extension_protocol_options:
+      envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+        "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+        explicit_http_config:
+          http2_protocol_options:
+            connection_keepalive:
+              interval: 30s
+              timeout: 10s
+    load_assignment:
+      cluster_name: xray_10013
+      endpoints: [{ lb_endpoints: [{ endpoint: { address: { socket_address: { address: 127.0.0.1, port_value: 10013 } } } }] }]
+
+  - name: xray_10014
+    type: STATIC
+    connect_timeout: 10s
+    per_connection_buffer_limit_bytes: 32768
+    upstream_connection_options:
+      tcp_keepalive: { keepalive_probes: 3, keepalive_time: 45, keepalive_interval: 15 }
+    typed_extension_protocol_options:
+      envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+        "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+        explicit_http_config:
+          http2_protocol_options:
+            connection_keepalive:
+              interval: 30s
+              timeout: 10s
+    load_assignment:
+      cluster_name: xray_10014
+      endpoints: [{ lb_endpoints: [{ endpoint: { address: { socket_address: { address: 127.0.0.1, port_value: 10014 } } } }] }]
+
+  - name: xray_10015
+    type: STATIC
+    connect_timeout: 10s
+    per_connection_buffer_limit_bytes: 32768
+    upstream_connection_options:
+      tcp_keepalive: { keepalive_probes: 3, keepalive_time: 45, keepalive_interval: 15 }
+    typed_extension_protocol_options:
+      envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+        "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+        explicit_http_config:
+          http2_protocol_options:
+            connection_keepalive:
+              interval: 30s
+              timeout: 10s
+    load_assignment:
+      cluster_name: xray_10015
+      endpoints: [{ lb_endpoints: [{ endpoint: { address: { socket_address: { address: 127.0.0.1, port_value: 10015 } } } }] }]
