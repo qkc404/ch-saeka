@@ -36,8 +36,12 @@ PROXY_PID=$!
 
 # If either process dies, bring the whole container down so the platform
 # restarts it, rather than limping along with only half the pipeline up.
+# `set +e` here is required: with -e still active, `wait -n` returning the
+# dead child's non-zero exit code would kill this script immediately and
+# skip the diagnostic line below, which defeats the whole point of it.
+set +e
 wait -n "$XRAY_PID" "$PROXY_PID"
 EXIT_CODE=$?
 echo "[!] A child process exited (code $EXIT_CODE) — shutting down container." >&2
-kill "$XRAY_PID" "$PROXY_PID" 2>/dev/null || true
+kill "$XRAY_PID" "$PROXY_PID" 2>/dev/null
 exit "$EXIT_CODE"
