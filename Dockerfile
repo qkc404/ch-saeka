@@ -17,14 +17,20 @@ RUN wget -q https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linu
     && chmod +x /usr/local/bin/xray \
     && rm -f Xray-linux-64.zip
 
-RUN mkdir -p /etc/xray /etc/envoy /etc/haproxy /usr/local/openresty/nginx/conf
+RUN mkdir -p /etc/xray /etc/envoy /etc/haproxy /usr/local/openresty/nginx/conf /usr/local/openresty/nginx/html
 
 COPY config.json /etc/xray/config.json
 COPY nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
 COPY envoy.yaml /etc/envoy/envoy.yaml
 COPY haproxy.cfg /etc/haproxy/haproxy.cfg
 COPY entrypoint.sh /entrypoint.sh
-COPY index.html /var/www/html/index.html
+COPY index.html /usr/local/openresty/nginx/html/index.html
+
+# Fail the build (instead of silently shipping a broken image) if config.json
+# is invalid. This is what let the container "deploy successfully" in the
+# past while Xray failed to start and every inbound returned EOF/refused.
+RUN /usr/local/bin/xray run -test -config /etc/xray/config.json \
+    || (echo "FATAL: /etc/xray/config.json failed validation" && exit 1)
 
 RUN chmod +x /entrypoint.sh
 
