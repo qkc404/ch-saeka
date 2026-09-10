@@ -7,46 +7,7 @@
     "queryStrategy": "UseIPv4",
     "disableCache": false,
     "hosts": {
-      "pagead2.googlesyndication.com": "127.0.0.1",
-      "googlesyndication.com": "127.0.0.1",
-      "doubleclick.net": "127.0.0.1",
-      "googleadservices.com": "127.0.0.1",
-      "adservice.google.com": "127.0.0.1",
-      "adsbygoogle.com": "127.0.0.1",
-      "google-analytics.com": "127.0.0.1",
-      "googletagmanager.com": "127.0.0.1",
-      "googletagservices.com": "127.0.0.1",
-      "googleads.g.doubleclick.net": "127.0.0.1",
-      "securepubads.g.doubleclick.net": "127.0.0.1",
-      "tpc.googlesyndication.com": "127.0.0.1",
-      "afs.googlesyndication.com": "127.0.0.1",
-      "stats.g.doubleclick.net": "127.0.0.1",
-      "ad.doubleclick.net": "127.0.0.1",
-      "partner.googleadservices.com": "127.0.0.1",
-      "pagead2.googleadservices.com": "127.0.0.1",
-      "youtube.com": "127.0.0.1",
-      "ytimg.com": "127.0.0.1",
-      "googlevideo.com": "127.0.0.1",
-      "youtube-nocookie.com": "127.0.0.1",
-      "yt3.ggpht.com": "127.0.0.1",
-      "i.ytimg.com": "127.0.0.1",
-      "s.ytimg.com": "127.0.0.1",
-      "popads.net": "127.0.0.1",
-      "popcash.net": "127.0.0.1",
-      "propellerads.com": "127.0.0.1",
-      "adcash.com": "127.0.0.1",
-      "exoclick.com": "127.0.0.1",
-      "adsterra.com": "127.0.0.1",
-      "popmyads.com": "127.0.0.1",
-      "adultforce.com": "127.0.0.1",
-      "trafficjunky.com": "127.0.0.1",
-      "clickaine.com": "127.0.0.1",
-      "ad-maven.com": "127.0.0.1",
-      "adpushup.com": "127.0.0.1",
-      "adrecover.com": "127.0.0.1",
-      "blockadblock.com": "127.0.0.1",
-      "admiral.com": "127.0.0.1",
-      "fundingchoices.google.com": "127.0.0.1"
+      "pagead2.googlesyndication.com": "127.0.0.1"
     }
   },
   "inbounds": [
@@ -158,12 +119,7 @@
     "rules": [
       {
         "type": "field",
-        "inboundTag": [
-          "trojan-ws", "trojan-hu", "trojan-xh", "trojan-grpc",
-          "vmess-ws", "vmess-hu", "vmess-xh", "vmess-grpc",
-          "vless-ws", "vless-hu", "vless-xh", "vless-grpc",
-          "ss-ws", "ss-hu", "ss-xh", "ss-grpc"
-        ],
+        "inboundTag": ["trojan-ws", "trojan-hu", "trojan-xh", "trojan-grpc", "vmess-ws", "vmess-hu", "vmess-xh", "vmess-grpc", "vless-ws", "vless-hu", "vless-xh", "vless-grpc", "ss-ws", "ss-hu", "ss-xh", "ss-grpc"],
         "outboundTag": "direct"
       }
     ]
