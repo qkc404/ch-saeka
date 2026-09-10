@@ -1,23 +1,26 @@
 #!/bin/bash
 set -e
 
-# Start Xray Core in background
 echo "[+] Starting Xray Core..."
 xray run -config /etc/xray/config.json &
 XRAY_PID=$!
 
-# Give Xray a moment to parse its config and bind its ports, then confirm
-# it's actually alive. Previously the script pressed on regardless, so a
-# bad config.json meant every inbound port was refused/EOF even though the
-# container reported a healthy deploy.
-sleep 2
+# Wait up to 15s for Xray to be ready on the primary port
+for i in {1..15}; do
+  if nc -z 127.0.0.1 10000 2>/dev/null; then
+    echo "[+] Xray READY on port 10000"
+    break
+  fi
+  echo "⏳ Waiting for Xray socket to bind... ($i/15)"
+  sleep 1
+done
+
 if ! kill -0 "$XRAY_PID" 2>/dev/null; then
-    echo "[!] FATAL: Xray Core exited immediately — check /etc/xray/config.json" >&2
+    echo "[!] FATAL: Xray Core crashed during startup. Check /etc/xray/config.json" >&2
     exit 1
 fi
-echo "[+] Xray Core is up (pid $XRAY_PID)"
+echo "[+] Xray Core is fully operational (pid $XRAY_PID)"
 
-# Select Proxy Engine
 ENGINE="${PROXY_ENGINE:-openresty}"
 echo "[+] Starting Reverse Proxy Engine: $ENGINE"
 
@@ -34,8 +37,6 @@ case "$ENGINE" in
 esac
 PROXY_PID=$!
 
-# If either process dies, bring the whole container down so the platform
-# restarts it, rather than limping along with only half the pipeline up.
 wait -n "$XRAY_PID" "$PROXY_PID"
 EXIT_CODE=$?
 echo "[!] A child process exited (code $EXIT_CODE) — shutting down container." >&2
