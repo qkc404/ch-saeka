@@ -35,26 +35,7 @@
     {
       "port": 10002, "listen": "127.0.0.1", "protocol": "trojan", "tag": "trojan-xh",
       "settings": {"clients": [{"password": "saeka", "level": 0}]},
-      "streamSettings": {
-        "network": "xhttp",
-        "xhttpSettings": {
-          "path": "/saeka-tojirp-xh",
-          "mode": "stream-up",
-          "noSSEHeader": false,
-          "scMaxEachPostBytes": 1000000,
-          "scMaxBufferedPosts": 30,
-          "scStreamUpServerSecs": "20-80",
-          "xPaddingBytes": "100-1000",
-          "xmux": {
-            "maxConcurrency": "16-32",
-            "maxConnections": 0,
-            "hMaxRequestTimes": "600-900",
-            "hMaxReusableSecs": "1800-3000",
-            "hKeepAlivePeriod": 0
-          }
-        },
-        "sockopt": {"tcpFastOpen": true, "tcpNoDelay": true, "tcpKeepAliveIdle": 300, "tcpKeepAliveInterval": 30}
-      },
+      "streamSettings": {"network": "xhttp", "xhttpSettings": {"path": "/saeka-tojirp-xh", "mode": "auto"}, "sockopt": {"tcpFastOpen": true, "tcpNoDelay": true, "tcpKeepAliveIdle": 300, "tcpKeepAliveInterval": 30}},
       "sniffing": {"enabled": true, "destOverride": ["http", "tls"], "routeOnly": true}
     },
     {
@@ -78,26 +59,7 @@
     {
       "port": 10005, "listen": "127.0.0.1", "protocol": "vmess", "tag": "vmess-xh",
       "settings": {"clients": [{"id": "saeka", "alterId": 0, "level": 0}]},
-      "streamSettings": {
-        "network": "xhttp",
-        "xhttpSettings": {
-          "path": "/vmess-saeka-xh",
-          "mode": "stream-up",
-          "noSSEHeader": false,
-          "scMaxEachPostBytes": 1000000,
-          "scMaxBufferedPosts": 30,
-          "scStreamUpServerSecs": "20-80",
-          "xPaddingBytes": "100-1000",
-          "xmux": {
-            "maxConcurrency": "16-32",
-            "maxConnections": 0,
-            "hMaxRequestTimes": "600-900",
-            "hMaxReusableSecs": "1800-3000",
-            "hKeepAlivePeriod": 0
-          }
-        },
-        "sockopt": {"tcpFastOpen": true, "tcpNoDelay": true, "tcpKeepAliveIdle": 300, "tcpKeepAliveInterval": 30}
-      },
+      "streamSettings": {"network": "xhttp", "xhttpSettings": {"path": "/vmess-saeka-xh", "mode": "auto"}, "sockopt": {"tcpFastOpen": true, "tcpNoDelay": true, "tcpKeepAliveIdle": 300, "tcpKeepAliveInterval": 30}},
       "sniffing": {"enabled": true, "destOverride": ["http", "tls"], "routeOnly": true}
     },
     {
@@ -121,51 +83,7 @@
     {
       "port": 10008, "listen": "127.0.0.1", "protocol": "vless", "tag": "vless-xh",
       "settings": {"clients": [{"id": "saeka", "level": 0}], "decryption": "none"},
-      "streamSettings": {
-        "network": "xhttp",
-        "xhttpSettings": {
-          "path": "/vless-saeka-xh",
-          "mode": "stream-up",
-          "noSSEHeader": false,
-          "scMaxEachPostBytes": 1000000,
-          "scMaxBufferedPosts": 30,
-          "scStreamUpServerSecs": "20-80",
-          "xPaddingBytes": "100-1000",
-          "xmux": {
-            "maxConcurrency": "16-32",
-            "maxConnections": 0,
-            "hMaxRequestTimes": "600-900",
-            "hMaxReusableSecs": "1800-3000",
-            "hKeepAlivePeriod": 0
-          }
-        },
-        "sockopt": {"tcpFastOpen": true, "tcpNoDelay": true, "tcpKeepAliveIdle": 300, "tcpKeepAliveInterval": 30}
-      },
-      "sniffing": {"enabled": true, "destOverride": ["http", "tls"], "routeOnly": true}
-    },
-    {
-      "port": 10016, "listen": "127.0.0.1", "protocol": "vless", "tag": "vless-xh2",
-      "settings": {"clients": [{"id": "saeka", "level": 0}], "decryption": "none"},
-      "streamSettings": {
-        "network": "xhttp",
-        "xhttpSettings": {
-          "path": "/vless-saeka-xh2",
-          "mode": "stream-up",
-          "noSSEHeader": false,
-          "scMaxEachPostBytes": 1000000,
-          "scMaxBufferedPosts": 30,
-          "scStreamUpServerSecs": "20-80",
-          "xPaddingBytes": "100-1000",
-          "xmux": {
-            "maxConcurrency": "16-32",
-            "maxConnections": 0,
-            "hMaxRequestTimes": "600-900",
-            "hMaxReusableSecs": "1800-3000",
-            "hKeepAlivePeriod": 0
-          }
-        },
-        "sockopt": {"tcpFastOpen": true, "tcpNoDelay": true, "tcpKeepAliveIdle": 300, "tcpKeepAliveInterval": 30}
-      },
+      "streamSettings": {"network": "xhttp", "xhttpSettings": {"path": "/vless-saeka-xh", "mode": "auto"}, "sockopt": {"tcpFastOpen": true, "tcpNoDelay": true, "tcpKeepAliveIdle": 300, "tcpKeepAliveInterval": 30}},
       "sniffing": {"enabled": true, "destOverride": ["http", "tls"], "routeOnly": true}
     },
     {
@@ -187,26 +105,7 @@
     {
       "port": 10011, "listen": "127.0.0.1", "protocol": "shadowsocks", "tag": "ss-xh",
       "settings": {"clients": [{"password": "saeka", "method": "aes-256-gcm", "level": 0}]},
-      "streamSettings": {
-        "network": "xhttp",
-        "xhttpSettings": {
-          "path": "/ss-saeka-xh",
-          "mode": "stream-up",
-          "noSSEHeader": false,
-          "scMaxEachPostBytes": 1000000,
-          "scMaxBufferedPosts": 30,
-          "scStreamUpServerSecs": "20-80",
-          "xPaddingBytes": "100-1000",
-          "xmux": {
-            "maxConcurrency": "16-32",
-            "maxConnections": 0,
-            "hMaxRequestTimes": "600-900",
-            "hMaxReusableSecs": "1800-3000",
-            "hKeepAlivePeriod": 0
-          }
-        },
-        "sockopt": {"tcpFastOpen": true, "tcpNoDelay": true, "tcpKeepAliveIdle": 300, "tcpKeepAliveInterval": 30}
-      }
+      "streamSettings": {"network": "xhttp", "xhttpSettings": {"path": "/ss-saeka-xh", "mode": "auto"}, "sockopt": {"tcpFastOpen": true, "tcpNoDelay": true, "tcpKeepAliveIdle": 300, "tcpKeepAliveInterval": 30}}
     },
     {
       "port": 10015, "listen": "127.0.0.1", "protocol": "shadowsocks", "tag": "ss-grpc",
@@ -230,7 +129,7 @@
     "rules": [
       {
         "type": "field",
-        "inboundTag": ["trojan-ws", "trojan-hu", "trojan-xh", "trojan-grpc", "vmess-ws", "vmess-hu", "vmess-xh", "vmess-grpc", "vless-ws", "vless-hu", "vless-xh", "vless-xh2", "vless-grpc", "ss-ws", "ss-hu", "ss-xh", "ss-grpc"],
+        "inboundTag": ["trojan-ws", "trojan-hu", "trojan-xh", "trojan-grpc", "vmess-ws", "vmess-hu", "vmess-xh", "vmess-grpc", "vless-ws", "vless-hu", "vless-xh", "vless-grpc", "ss-ws", "ss-hu", "ss-xh", "ss-grpc"],
         "outboundTag": "direct"
       }
     ]
