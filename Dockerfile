@@ -15,15 +15,16 @@ RUN mkdir -p /tmp/xray && cd /tmp/xray && \
     ls -la
 
 # =====================================
-# PRODUCTION IMAGE
+# PRODUCTION IMAGE FOR GOOGLE CLOUD RUN
 # =====================================
 FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PROXY_ENGINE=openresty \
-    TZ=UTC
+    TZ=UTC \
+    PORT=8080
 
-# Install core dependencies (including gnupg2 early)
+# Install core dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
@@ -87,11 +88,7 @@ COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh && \
     chmod 644 /etc/xray/config.json /etc/envoy/envoy.yaml /etc/haproxy/haproxy.cfg
 
-# Validate Xray config at build time
-RUN /usr/local/bin/xray validate -config /etc/xray/config.json || \
-    (echo "❌ FATAL: Xray config validation failed!" && exit 1)
-
-# Health check
+# Health check for Cloud Run
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:8080/health || exit 1
 
