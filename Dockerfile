@@ -1,40 +1,99 @@
-FROM ubuntu:22.04
+FROM ubuntu:22.04 AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && apt-get install -y \
-    curl wget unzip ca-certificates gnupg lsb-release haproxy git netcat-openbsd \
-    && mkdir -p /etc/apt/keyrings /usr/share/keyrings \
-    && curl -fsSL https://openresty.org/package/pubkey.gpg | gpg --dearmor -o /usr/share/keyrings/openresty.gpg \
-    && echo "deb [signed-by=/usr/share/keyrings/openresty.gpg] http://openresty.org/package/ubuntu $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/openresty.list \
-    && curl -fsSL https://apt.envoyproxy.io/signing.key | gpg --dearmor -o /etc/apt/keyrings/envoy-keyring.gpg \
-    && echo "deb [arch=amd64,arm64 signed-by=/etc/apt/keyrings/envoy-keyring.gpg] https://apt.envoyproxy.io $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/envoy.list \
-    && apt-get update && apt-get install -y openresty envoy \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl wget unzip ca-certificates gnupg lsb-release \
+    && rm -rf /var/lib/apt/lists/*
 
-# Extract Xray and route assets correctly
-RUN wget -q https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip \
-    && unzip -q Xray-linux-64.zip -d /tmp/xray/ \
-    && mv /tmp/xray/xray /usr/local/bin/xray \
-    && mkdir -p /usr/local/share/xray/ \
-    && mv /tmp/xray/geosite.dat /usr/local/share/xray/ \
-    && mv /tmp/xray/geoip.dat /usr/local/share/xray/ \
-    && chmod +x /usr/local/bin/xray \
-    && rm -rf /tmp/xray/ Xray-linux-64.zip
+# Download Xray with error checking
+RUN mkdir -p /tmp/xray && cd /tmp/xray && \
+    wget -q -O Xray-linux-64.zip https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip && \
+    unzip -q Xray-linux-64.zip && \
+    chmod +x xray && \
+    ls -la
 
-RUN mkdir -p /etc/xray /etc/envoy /etc/haproxy /usr/local/openresty/nginx/conf /usr/local/openresty/nginx/html
+# =====================================
+# PRODUCTION IMAGE
+# =====================================
+FROM ubuntu:22.04
 
+ENV DEBIAN_FRONTEND=noninteractive \
+    PROXY_ENGINE=openresty \
+    TZ=UTC
+
+# Install core dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    netcat-openbsd \
+    net-tools \
+    && rm -rf /var/lib/apt/lists/*
+
+# Add OpenResty repository & install
+RUN apt-get update && \
+    curl -fsSL https://openresty.org/package/pubkey.gpg | gpg --dearmor -o /usr/share/keyrings/openresty.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/openresty.gpg] http://openresty.org/package/ubuntu $(lsb_release -sc) main" | \
+    tee /etc/apt/sources.list.d/openresty.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends openresty && \
+    rm -rf /var/lib/apt/lists/*
+
+# Add Envoy repository & install (optional)
+RUN apt-get update && \
+    curl -fsSL https://apt.envoyproxy.io/signing.key | gpg --dearmor -o /etc/apt/keyrings/envoy-keyring.gpg && \
+    echo "deb [arch=amd64,arm64 signed-by=/etc/apt/keyrings/envoy-keyring.gpg] https://apt.envoyproxy.io $(lsb_release -cs) main" | \
+    tee /etc/apt/sources.list.d/envoy.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends envoy && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install HAProxy
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends haproxy && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy Xray from builder
+COPY --from=builder /tmp/xray/xray /usr/local/bin/xray
+COPY --from=builder /tmp/xray/geosite.dat /usr/local/share/xray/geosite.dat
+COPY --from=builder /tmp/xray/geoip.dat /usr/local/share/xray/geoip.dat
+
+RUN chmod +x /usr/local/bin/xray && \
+    chmod 644 /usr/local/share/xray/*.dat
+
+# Create directory structure
+RUN mkdir -p \
+    /etc/xray \
+    /etc/envoy \
+    /etc/haproxy \
+    /usr/local/openresty/nginx/conf \
+    /usr/local/openresty/nginx/html \
+    /tmp/xray-logs
+
+# Copy configuration files
 COPY config.json /etc/xray/config.json
 COPY nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
 COPY envoy.yaml /etc/envoy/envoy.yaml
 COPY haproxy.cfg /etc/haproxy/haproxy.cfg
-COPY entrypoint.sh /entrypoint.sh
 COPY index.html /usr/local/openresty/nginx/html/index.html
+COPY entrypoint.sh /entrypoint.sh
 
-RUN /usr/local/bin/xray run -test -config /etc/xray/config.json \
-    || (echo "FATAL: /etc/xray/config.json failed validation" && exit 1)
+# Fix permissions
+RUN chmod +x /entrypoint.sh && \
+    chmod 644 /etc/xray/config.json /etc/envoy/envoy.yaml /etc/haproxy/haproxy.cfg
 
-RUN chmod +x /entrypoint.sh
+# Validate Xray config at build time
+RUN /usr/local/bin/xray validate -config /etc/xray/config.json || \
+    (echo "❌ FATAL: Xray config validation failed!" && exit 1)
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Runtime optimizations
+ENV MALLOC_TRIM_THRESHOLD_=262144 \
+    MALLOC_MMAP_MAX_=65536 \
+    MALLOC_MMAP_THRESHOLD_=262144
 
 EXPOSE 8080
 
