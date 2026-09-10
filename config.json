@@ -158,7 +158,12 @@
     "rules": [
       {
         "type": "field",
-        "inboundTag": ["trojan-ws", "trojan-hu", "trojan-xh", "trojan-grpc", "vmess-ws", "vmess-hu", "vmess-xh", "vmess-grpc", "vless-ws", "vless-hu", "vless-xh", "vless-grpc", "ss-ws", "ss-hu", "ss-xh", "ss-grpc"],
+        "inboundTag": [
+          "trojan-ws", "trojan-hu", "trojan-xh", "trojan-grpc",
+          "vmess-ws", "vmess-hu", "vmess-xh", "vmess-grpc",
+          "vless-ws", "vless-hu", "vless-xh", "vless-grpc",
+          "ss-ws", "ss-hu", "ss-xh", "ss-grpc"
+        ],
         "outboundTag": "direct"
       }
     ]
