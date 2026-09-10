@@ -1,47 +1,47 @@
 #!/bin/bash
-set -e
+set -uo pipefail
 
-# Start Xray Core in background
-echo "[+] Starting Xray Core..."
-xray run -config /etc/xray/config.json &
-XRAY_PID=$!
+XRAY_CONFIG=/etc/xray/config.json
 
-# Give Xray a moment to parse its config and bind its ports, then confirm
-# it's actually alive. Previously the script pressed on regardless, so a
-# bad config.json meant every inbound port was refused/EOF even though the
-# container reported a healthy deploy.
-sleep 2
-if ! kill -0 "$XRAY_PID" 2>/dev/null; then
-    echo "[!] FATAL: Xray Core exited immediately — check /etc/xray/config.json" >&2
-    exit 1
-fi
-echo "[+] Xray Core is up (pid $XRAY_PID)"
+start_xray() {
+    echo "[+] Starting Xray Core..."
+    xray run -config "$XRAY_CONFIG" &
+    XRAY_PID=$!
+}
 
-# Select Proxy Engine
+# Watchdog: if Xray ever dies (bad config, transient crash, whatever), log
+# it loudly and restart it — but never bring the container down over it.
+# Cloud Run's startup probe only checks that port 8080 (the reverse proxy,
+# below) is accepting connections; if this script's own exit takes the
+# proxy down with it, that reproduces "container failed to start and
+# listen on PORT" even when the actual problem is isolated to Xray.
+watchdog() {
+    while true; do
+        wait "$XRAY_PID" 2>/dev/null
+        echo "[!] Xray Core exited unexpectedly — restarting in 2s. Xray's own error output should be just above this line; check ${XRAY_CONFIG} if it points to a config problem." >&2
+        sleep 2
+        start_xray
+    done
+}
+
+start_xray
+watchdog &
+
+# Select Proxy Engine. This is exec'd directly (becomes PID 1) so it starts
+# and binds :8080 immediately and reliably, and so it receives SIGTERM
+# straight from the platform on shutdown instead of it being swallowed by
+# an intermediate shell.
 ENGINE="${PROXY_ENGINE:-openresty}"
 echo "[+] Starting Reverse Proxy Engine: $ENGINE"
 
 case "$ENGINE" in
   "envoy")
-    envoy -c /etc/envoy/envoy.yaml &
+    exec envoy -c /etc/envoy/envoy.yaml
     ;;
   "haproxy")
-    haproxy -f /etc/haproxy/haproxy.cfg &
+    exec haproxy -f /etc/haproxy/haproxy.cfg
     ;;
   "openresty"|*)
-    openresty -g "daemon off;" &
+    exec openresty -g "daemon off;"
     ;;
 esac
-PROXY_PID=$!
-
-# If either process dies, bring the whole container down so the platform
-# restarts it, rather than limping along with only half the pipeline up.
-# `set +e` here is required: with -e still active, `wait -n` returning the
-# dead child's non-zero exit code would kill this script immediately and
-# skip the diagnostic line below, which defeats the whole point of it.
-set +e
-wait -n "$XRAY_PID" "$PROXY_PID"
-EXIT_CODE=$?
-echo "[!] A child process exited (code $EXIT_CODE) — shutting down container." >&2
-kill "$XRAY_PID" "$PROXY_PID" 2>/dev/null
-exit "$EXIT_CODE"
