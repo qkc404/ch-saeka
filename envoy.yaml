@@ -60,10 +60,6 @@ static_resources:
                 route: { cluster: xray_10014, timeout: 0s, idle_timeout: 0s }
               - match: { prefix: "/vless-saeka-hu" }
                 route: { cluster: xray_10007, timeout: 0s, idle_timeout: 0s }
-              - match: { prefix: "/vless-saeka-xh2" }
-                route: { cluster: xray_10016, timeout: 0s, idle_timeout: 0s }
-              - match: { prefix: "/vless-saeka-xh-dl" }
-                route: { cluster: xray_10008, timeout: 0s, idle_timeout: 0s }
               - match: { prefix: "/vless-saeka-xh" }
                 route: { cluster: xray_10008, timeout: 0s, idle_timeout: 0s }
               - match: { prefix: "/vless-saeka" }
@@ -206,16 +202,6 @@ static_resources:
     load_assignment:
       cluster_name: xray_10011
       endpoints: [{ lb_endpoints: [{ endpoint: { address: { socket_address: { address: 127.0.0.1, port_value: 10011 } } } }] }]
-
-  - name: xray_10016
-    type: STATIC
-    connect_timeout: 10s
-    per_connection_buffer_limit_bytes: 32768
-    upstream_connection_options:
-      tcp_keepalive: { keepalive_probes: 3, keepalive_time: 45, keepalive_interval: 15 }
-    load_assignment:
-      cluster_name: xray_10016
-      endpoints: [{ lb_endpoints: [{ endpoint: { address: { socket_address: { address: 127.0.0.1, port_value: 10016 } } } }] }]
 
   # gRPC Clusters (HTTP/2 enabled with active PINGs)
   - name: xray_10012
