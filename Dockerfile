@@ -3,12 +3,13 @@ FROM ubuntu:22.04 AS builder
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl wget unzip ca-certificates gnupg lsb-release \
+    curl wget unzip ca-certificates gnupg2 lsb-release \
     && rm -rf /var/lib/apt/lists/*
 
 # Download Xray with error checking
 RUN mkdir -p /tmp/xray && cd /tmp/xray && \
     wget -q -O Xray-linux-64.zip https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip && \
+    if [ ! -f Xray-linux-64.zip ]; then echo "Failed to download Xray"; exit 1; fi && \
     unzip -q Xray-linux-64.zip && \
     chmod +x xray && \
     ls -la
@@ -22,16 +23,20 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PROXY_ENGINE=openresty \
     TZ=UTC
 
-# Install core dependencies
+# Install core dependencies (including gnupg2 early)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
+    wget \
+    gnupg2 \
+    lsb-release \
     netcat-openbsd \
     net-tools \
     && rm -rf /var/lib/apt/lists/*
 
 # Add OpenResty repository & install
 RUN apt-get update && \
+    mkdir -p /usr/share/keyrings /etc/apt/keyrings && \
     curl -fsSL https://openresty.org/package/pubkey.gpg | gpg --dearmor -o /usr/share/keyrings/openresty.gpg && \
     echo "deb [signed-by=/usr/share/keyrings/openresty.gpg] http://openresty.org/package/ubuntu $(lsb_release -sc) main" | \
     tee /etc/apt/sources.list.d/openresty.list && \
@@ -39,7 +44,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends openresty && \
     rm -rf /var/lib/apt/lists/*
 
-# Add Envoy repository & install (optional)
+# Add Envoy repository & install
 RUN apt-get update && \
     curl -fsSL https://apt.envoyproxy.io/signing.key | gpg --dearmor -o /etc/apt/keyrings/envoy-keyring.gpg && \
     echo "deb [arch=amd64,arm64 signed-by=/etc/apt/keyrings/envoy-keyring.gpg] https://apt.envoyproxy.io $(lsb_release -cs) main" | \
