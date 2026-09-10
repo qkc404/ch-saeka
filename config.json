@@ -1,779 +1,135 @@
 {
   "log": {
-    "loglevel": "warning",
-    "access": ""
+    "loglevel": "warning"
   },
   "dns": {
-    "servers": [
-      {
-        "address": "8.8.8.8",
-        "port": 53,
-        "clientIp": "8.8.4.4"
-      },
-      {
-        "address": "1.1.1.1",
-        "port": 53
-      }
-    ],
+    "servers": ["8.8.8.8", "1.1.1.1"],
     "queryStrategy": "UseIPv4",
-    "disableCache": false,
-    "disableFallback": false,
-    "tag": "dns_inbound"
+    "disableCache": false
   },
   "assets": {
     "directory": "/usr/local/share/xray/"
   },
-  "stats": {},
   "policy": {
     "levels": {
       "0": {
-        "handshake": 1,
+        "handshake": 2,
         "connIdle": 3600,
-        "uplinkOnly": 0,
-        "downlinkOnly": 0,
-        "bufferSize": 2097152,
-        "statsUserUplink": false,
-        "statsUserDownlink": false
+        "bufferSize": 1048576
       }
-    },
-    "system": {
-      "statsInboundDownlink": false,
-      "statsInboundUplink": false,
-      "statsOutboundDownlink": false,
-      "statsOutboundUplink": false
     }
   },
   "inbounds": [
     {
-      "port": 10000,
-      "listen": "127.0.0.1",
-      "protocol": "trojan",
-      "tag": "trojan-ws",
-      "settings": {
-        "clients": [
-          {
-            "password": "saeka",
-            "level": 0,
-            "email": "trojan-ws@saeka.local"
-          }
-        ],
-        "fallbacks": []
-      },
-      "streamSettings": {
-        "network": "ws",
-        "wsSettings": {
-          "path": "/saeka-tojirp",
-          "headers": {
-            "User-Agent": "Mozilla/5.0"
-          }
-        },
-        "sockopt": {
-          "mark": 255,
-          "tcpFastOpen": true,
-          "tcpNoDelay": true,
-          "tcpKeepAliveIdle": 300,
-          "tcpKeepAliveInterval": 30
-        }
-      },
-      "sniffing": {
-        "enabled": true,
-        "destOverride": [
-          "http",
-          "tls",
-          "quic"
-        ],
-        "metadataOnly": false,
-        "routeOnly": true
-      }
+      "port": 10000, "listen": "127.0.0.1", "protocol": "trojan", "tag": "trojan-ws",
+      "settings": {"clients": [{"password": "saeka", "level": 0}]},
+      "streamSettings": {"network": "ws", "wsSettings": {"path": "/saeka-tojirp"}, "sockopt": {"tcpFastOpen": true, "tcpNoDelay": true, "tcpKeepAliveIdle": 300, "tcpKeepAliveInterval": 30}},
+      "sniffing": {"enabled": true, "destOverride": ["http", "tls"], "routeOnly": true}
     },
     {
-      "port": 10001,
-      "listen": "127.0.0.1",
-      "protocol": "trojan",
-      "tag": "trojan-hu",
-      "settings": {
-        "clients": [
-          {
-            "password": "saeka",
-            "level": 0,
-            "email": "trojan-hu@saeka.local"
-          }
-        ],
-        "fallbacks": []
-      },
-      "streamSettings": {
-        "network": "httpupgrade",
-        "httpupgradeSettings": {
-          "path": "/saeka-tojirp-hu",
-          "host": "",
-          "headers": {}
-        },
-        "sockopt": {
-          "mark": 255,
-          "tcpFastOpen": true,
-          "tcpNoDelay": true,
-          "tcpKeepAliveIdle": 300,
-          "tcpKeepAliveInterval": 30
-        }
-      },
-      "sniffing": {
-        "enabled": true,
-        "destOverride": [
-          "http",
-          "tls",
-          "quic"
-        ],
-        "metadataOnly": false,
-        "routeOnly": true
-      }
+      "port": 10001, "listen": "127.0.0.1", "protocol": "trojan", "tag": "trojan-hu",
+      "settings": {"clients": [{"password": "saeka", "level": 0}]},
+      "streamSettings": {"network": "httpupgrade", "httpupgradeSettings": {"path": "/saeka-tojirp-hu"}, "sockopt": {"tcpFastOpen": true, "tcpNoDelay": true, "tcpKeepAliveIdle": 300, "tcpKeepAliveInterval": 30}},
+      "sniffing": {"enabled": true, "destOverride": ["http", "tls"], "routeOnly": true}
     },
     {
-      "port": 10002,
-      "listen": "127.0.0.1",
-      "protocol": "trojan",
-      "tag": "trojan-xh",
-      "settings": {
-        "clients": [
-          {
-            "password": "saeka",
-            "level": 0,
-            "email": "trojan-xh@saeka.local"
-          }
-        ],
-        "fallbacks": []
-      },
-      "streamSettings": {
-        "network": "xhttp",
-        "xhttpSettings": {
-          "path": "/saeka-tojirp-xh",
-          "mode": "auto",
-          "noDelay": true
-        },
-        "sockopt": {
-          "mark": 255,
-          "tcpFastOpen": true,
-          "tcpNoDelay": true,
-          "tcpKeepAliveIdle": 60,
-          "tcpKeepAliveInterval": 15,
-          "acceptProxyProtocol": false
-        }
-      },
-      "sniffing": {
-        "enabled": true,
-        "destOverride": [
-          "http",
-          "tls",
-          "quic"
-        ],
-        "metadataOnly": false,
-        "routeOnly": true
-      }
+      "port": 10002, "listen": "127.0.0.1", "protocol": "trojan", "tag": "trojan-xh",
+      "settings": {"clients": [{"password": "saeka", "level": 0}]},
+      "streamSettings": {"network": "xhttp", "xhttpSettings": {"path": "/saeka-tojirp-xh", "mode": "auto"}, "sockopt": {"tcpFastOpen": true, "tcpNoDelay": true, "tcpKeepAliveIdle": 300, "tcpKeepAliveInterval": 30}},
+      "sniffing": {"enabled": true, "destOverride": ["http", "tls"], "routeOnly": true}
     },
     {
-      "port": 10012,
-      "listen": "127.0.0.1",
-      "protocol": "trojan",
-      "tag": "trojan-grpc",
-      "settings": {
-        "clients": [
-          {
-            "password": "saeka",
-            "level": 0,
-            "email": "trojan-grpc@saeka.local"
-          }
-        ],
-        "fallbacks": []
-      },
-      "streamSettings": {
-        "network": "grpc",
-        "grpcSettings": {
-          "serviceName": "saeka-tojirp-grpc",
-          "multiMode": false,
-          "idleTimeout": 60,
-          "healthCheckTimeout": 20,
-          "permitWithoutStream": false,
-          "initialWindowsSize": 65535
-        },
-        "sockopt": {
-          "mark": 255,
-          "tcpFastOpen": true,
-          "tcpNoDelay": true,
-          "tcpKeepAliveIdle": 60,
-          "tcpKeepAliveInterval": 15
-        }
-      },
-      "sniffing": {
-        "enabled": true,
-        "destOverride": [
-          "http",
-          "tls",
-          "quic"
-        ],
-        "metadataOnly": false,
-        "routeOnly": true
-      }
+      "port": 10012, "listen": "127.0.0.1", "protocol": "trojan", "tag": "trojan-grpc",
+      "settings": {"clients": [{"password": "saeka", "level": 0}]},
+      "streamSettings": {"network": "grpc", "grpcSettings": {"serviceName": "saeka-tojirp-grpc"}, "sockopt": {"tcpFastOpen": true, "tcpNoDelay": true, "tcpKeepAliveIdle": 300, "tcpKeepAliveInterval": 30}},
+      "sniffing": {"enabled": true, "destOverride": ["http", "tls"], "routeOnly": true}
     },
     {
-      "port": 10003,
-      "listen": "127.0.0.1",
-      "protocol": "vmess",
-      "tag": "vmess-ws",
-      "settings": {
-        "clients": [
-          {
-            "id": "saeka",
-            "alterId": 0,
-            "level": 0,
-            "email": "vmess-ws@saeka.local"
-          }
-        ]
-      },
-      "streamSettings": {
-        "network": "ws",
-        "wsSettings": {
-          "path": "/vmess-saeka",
-          "headers": {
-            "User-Agent": "Mozilla/5.0"
-          }
-        },
-        "sockopt": {
-          "mark": 255,
-          "tcpFastOpen": true,
-          "tcpNoDelay": true,
-          "tcpKeepAliveIdle": 300,
-          "tcpKeepAliveInterval": 30
-        }
-      },
-      "sniffing": {
-        "enabled": true,
-        "destOverride": [
-          "http",
-          "tls",
-          "quic"
-        ],
-        "metadataOnly": false,
-        "routeOnly": true
-      }
+      "port": 10003, "listen": "127.0.0.1", "protocol": "vmess", "tag": "vmess-ws",
+      "settings": {"clients": [{"id": "saeka", "alterId": 0, "level": 0}]},
+      "streamSettings": {"network": "ws", "wsSettings": {"path": "/vmess-saeka"}, "sockopt": {"tcpFastOpen": true, "tcpNoDelay": true, "tcpKeepAliveIdle": 300, "tcpKeepAliveInterval": 30}},
+      "sniffing": {"enabled": true, "destOverride": ["http", "tls"], "routeOnly": true}
     },
     {
-      "port": 10004,
-      "listen": "127.0.0.1",
-      "protocol": "vmess",
-      "tag": "vmess-hu",
-      "settings": {
-        "clients": [
-          {
-            "id": "saeka",
-            "alterId": 0,
-            "level": 0,
-            "email": "vmess-hu@saeka.local"
-          }
-        ]
-      },
-      "streamSettings": {
-        "network": "httpupgrade",
-        "httpupgradeSettings": {
-          "path": "/vmess-saeka-hu",
-          "host": "",
-          "headers": {}
-        },
-        "sockopt": {
-          "mark": 255,
-          "tcpFastOpen": true,
-          "tcpNoDelay": true,
-          "tcpKeepAliveIdle": 300,
-          "tcpKeepAliveInterval": 30
-        }
-      },
-      "sniffing": {
-        "enabled": true,
-        "destOverride": [
-          "http",
-          "tls",
-          "quic"
-        ],
-        "metadataOnly": false,
-        "routeOnly": true
-      }
+      "port": 10004, "listen": "127.0.0.1", "protocol": "vmess", "tag": "vmess-hu",
+      "settings": {"clients": [{"id": "saeka", "alterId": 0, "level": 0}]},
+      "streamSettings": {"network": "httpupgrade", "httpupgradeSettings": {"path": "/vmess-saeka-hu"}, "sockopt": {"tcpFastOpen": true, "tcpNoDelay": true, "tcpKeepAliveIdle": 300, "tcpKeepAliveInterval": 30}},
+      "sniffing": {"enabled": true, "destOverride": ["http", "tls"], "routeOnly": true}
     },
     {
-      "port": 10005,
-      "listen": "127.0.0.1",
-      "protocol": "vmess",
-      "tag": "vmess-xh",
-      "settings": {
-        "clients": [
-          {
-            "id": "saeka",
-            "alterId": 0,
-            "level": 0,
-            "email": "vmess-xh@saeka.local"
-          }
-        ]
-      },
-      "streamSettings": {
-        "network": "xhttp",
-        "xhttpSettings": {
-          "path": "/vmess-saeka-xh",
-          "mode": "auto",
-          "noDelay": true
-        },
-        "sockopt": {
-          "mark": 255,
-          "tcpFastOpen": true,
-          "tcpNoDelay": true,
-          "tcpKeepAliveIdle": 60,
-          "tcpKeepAliveInterval": 15,
-          "acceptProxyProtocol": false
-        }
-      },
-      "sniffing": {
-        "enabled": true,
-        "destOverride": [
-          "http",
-          "tls",
-          "quic"
-        ],
-        "metadataOnly": false,
-        "routeOnly": true
-      }
+      "port": 10005, "listen": "127.0.0.1", "protocol": "vmess", "tag": "vmess-xh",
+      "settings": {"clients": [{"id": "saeka", "alterId": 0, "level": 0}]},
+      "streamSettings": {"network": "xhttp", "xhttpSettings": {"path": "/vmess-saeka-xh", "mode": "auto"}, "sockopt": {"tcpFastOpen": true, "tcpNoDelay": true, "tcpKeepAliveIdle": 300, "tcpKeepAliveInterval": 30}},
+      "sniffing": {"enabled": true, "destOverride": ["http", "tls"], "routeOnly": true}
     },
     {
-      "port": 10013,
-      "listen": "127.0.0.1",
-      "protocol": "vmess",
-      "tag": "vmess-grpc",
-      "settings": {
-        "clients": [
-          {
-            "id": "saeka",
-            "alterId": 0,
-            "level": 0,
-            "email": "vmess-grpc@saeka.local"
-          }
-        ]
-      },
-      "streamSettings": {
-        "network": "grpc",
-        "grpcSettings": {
-          "serviceName": "vmess-saeka-grpc",
-          "multiMode": false,
-          "idleTimeout": 60,
-          "healthCheckTimeout": 20,
-          "permitWithoutStream": false,
-          "initialWindowsSize": 65535
-        },
-        "sockopt": {
-          "mark": 255,
-          "tcpFastOpen": true,
-          "tcpNoDelay": true,
-          "tcpKeepAliveIdle": 60,
-          "tcpKeepAliveInterval": 15
-        }
-      },
-      "sniffing": {
-        "enabled": true,
-        "destOverride": [
-          "http",
-          "tls",
-          "quic"
-        ],
-        "metadataOnly": false,
-        "routeOnly": true
-      }
+      "port": 10013, "listen": "127.0.0.1", "protocol": "vmess", "tag": "vmess-grpc",
+      "settings": {"clients": [{"id": "saeka", "alterId": 0, "level": 0}]},
+      "streamSettings": {"network": "grpc", "grpcSettings": {"serviceName": "vmess-saeka-grpc"}, "sockopt": {"tcpFastOpen": true, "tcpNoDelay": true, "tcpKeepAliveIdle": 300, "tcpKeepAliveInterval": 30}},
+      "sniffing": {"enabled": true, "destOverride": ["http", "tls"], "routeOnly": true}
     },
     {
-      "port": 10006,
-      "listen": "127.0.0.1",
-      "protocol": "vless",
-      "tag": "vless-ws",
-      "settings": {
-        "clients": [
-          {
-            "id": "saeka",
-            "level": 0,
-            "email": "vless-ws@saeka.local"
-          }
-        ],
-        "decryption": "none"
-      },
-      "streamSettings": {
-        "network": "ws",
-        "wsSettings": {
-          "path": "/vless-saeka",
-          "headers": {
-            "User-Agent": "Mozilla/5.0"
-          }
-        },
-        "sockopt": {
-          "mark": 255,
-          "tcpFastOpen": true,
-          "tcpNoDelay": true,
-          "tcpKeepAliveIdle": 300,
-          "tcpKeepAliveInterval": 30
-        }
-      },
-      "sniffing": {
-        "enabled": true,
-        "destOverride": [
-          "http",
-          "tls",
-          "quic"
-        ],
-        "metadataOnly": false,
-        "routeOnly": true
-      }
+      "port": 10006, "listen": "127.0.0.1", "protocol": "vless", "tag": "vless-ws",
+      "settings": {"clients": [{"id": "saeka", "level": 0}], "decryption": "none"},
+      "streamSettings": {"network": "ws", "wsSettings": {"path": "/vless-saeka"}, "sockopt": {"tcpFastOpen": true, "tcpNoDelay": true, "tcpKeepAliveIdle": 300, "tcpKeepAliveInterval": 30}},
+      "sniffing": {"enabled": true, "destOverride": ["http", "tls"], "routeOnly": true}
     },
     {
-      "port": 10007,
-      "listen": "127.0.0.1",
-      "protocol": "vless",
-      "tag": "vless-hu",
-      "settings": {
-        "clients": [
-          {
-            "id": "saeka",
-            "level": 0,
-            "email": "vless-hu@saeka.local"
-          }
-        ],
-        "decryption": "none"
-      },
-      "streamSettings": {
-        "network": "httpupgrade",
-        "httpupgradeSettings": {
-          "path": "/vless-saeka-hu",
-          "host": "",
-          "headers": {}
-        },
-        "sockopt": {
-          "mark": 255,
-          "tcpFastOpen": true,
-          "tcpNoDelay": true,
-          "tcpKeepAliveIdle": 300,
-          "tcpKeepAliveInterval": 30
-        }
-      },
-      "sniffing": {
-        "enabled": true,
-        "destOverride": [
-          "http",
-          "tls",
-          "quic"
-        ],
-        "metadataOnly": false,
-        "routeOnly": true
-      }
+      "port": 10007, "listen": "127.0.0.1", "protocol": "vless", "tag": "vless-hu",
+      "settings": {"clients": [{"id": "saeka", "level": 0}], "decryption": "none"},
+      "streamSettings": {"network": "httpupgrade", "httpupgradeSettings": {"path": "/vless-saeka-hu"}, "sockopt": {"tcpFastOpen": true, "tcpNoDelay": true, "tcpKeepAliveIdle": 300, "tcpKeepAliveInterval": 30}},
+      "sniffing": {"enabled": true, "destOverride": ["http", "tls"], "routeOnly": true}
     },
     {
-      "port": 10008,
-      "listen": "127.0.0.1",
-      "protocol": "vless",
-      "tag": "vless-xh",
-      "settings": {
-        "clients": [
-          {
-            "id": "saeka",
-            "level": 0,
-            "email": "vless-xh@saeka.local"
-          }
-        ],
-        "decryption": "none"
-      },
-      "streamSettings": {
-        "network": "xhttp",
-        "xhttpSettings": {
-          "path": "/vless-saeka-xh",
-          "mode": "auto",
-          "noDelay": true
-        },
-        "sockopt": {
-          "mark": 255,
-          "tcpFastOpen": true,
-          "tcpNoDelay": true,
-          "tcpKeepAliveIdle": 60,
-          "tcpKeepAliveInterval": 15,
-          "acceptProxyProtocol": false
-        }
-      },
-      "sniffing": {
-        "enabled": true,
-        "destOverride": [
-          "http",
-          "tls",
-          "quic"
-        ],
-        "metadataOnly": false,
-        "routeOnly": true
-      }
+      "port": 10008, "listen": "127.0.0.1", "protocol": "vless", "tag": "vless-xh",
+      "settings": {"clients": [{"id": "saeka", "level": 0}], "decryption": "none"},
+      "streamSettings": {"network": "xhttp", "xhttpSettings": {"path": "/vless-saeka-xh", "mode": "auto"}, "sockopt": {"tcpFastOpen": true, "tcpNoDelay": true, "tcpKeepAliveIdle": 300, "tcpKeepAliveInterval": 30}},
+      "sniffing": {"enabled": true, "destOverride": ["http", "tls"], "routeOnly": true}
     },
     {
-      "port": 10014,
-      "listen": "127.0.0.1",
-      "protocol": "vless",
-      "tag": "vless-grpc",
-      "settings": {
-        "clients": [
-          {
-            "id": "saeka",
-            "level": 0,
-            "email": "vless-grpc@saeka.local"
-          }
-        ],
-        "decryption": "none"
-      },
-      "streamSettings": {
-        "network": "grpc",
-        "grpcSettings": {
-          "serviceName": "vless-saeka-grpc",
-          "multiMode": false,
-          "idleTimeout": 60,
-          "healthCheckTimeout": 20,
-          "permitWithoutStream": false,
-          "initialWindowsSize": 65535
-        },
-        "sockopt": {
-          "mark": 255,
-          "tcpFastOpen": true,
-          "tcpNoDelay": true,
-          "tcpKeepAliveIdle": 60,
-          "tcpKeepAliveInterval": 15
-        }
-      },
-      "sniffing": {
-        "enabled": true,
-        "destOverride": [
-          "http",
-          "tls",
-          "quic"
-        ],
-        "metadataOnly": false,
-        "routeOnly": true
-      }
+      "port": 10014, "listen": "127.0.0.1", "protocol": "vless", "tag": "vless-grpc",
+      "settings": {"clients": [{"id": "saeka", "level": 0}], "decryption": "none"},
+      "streamSettings": {"network": "grpc", "grpcSettings": {"serviceName": "vless-saeka-grpc"}, "sockopt": {"tcpFastOpen": true, "tcpNoDelay": true, "tcpKeepAliveIdle": 300, "tcpKeepAliveInterval": 30}},
+      "sniffing": {"enabled": true, "destOverride": ["http", "tls"], "routeOnly": true}
     },
     {
-      "port": 10009,
-      "listen": "127.0.0.1",
-      "protocol": "shadowsocks",
-      "tag": "ss-ws",
-      "settings": {
-        "clients": [
-          {
-            "password": "saeka",
-            "method": "aes-256-gcm",
-            "level": 0,
-            "email": "ss-ws@saeka.local"
-          }
-        ]
-      },
-      "streamSettings": {
-        "network": "ws",
-        "wsSettings": {
-          "path": "/ss-saeka",
-          "headers": {
-            "User-Agent": "Mozilla/5.0"
-          }
-        },
-        "sockopt": {
-          "mark": 255,
-          "tcpFastOpen": true,
-          "tcpNoDelay": true,
-          "tcpKeepAliveIdle": 300,
-          "tcpKeepAliveInterval": 30
-        }
-      },
-      "sniffing": {
-        "enabled": true,
-        "destOverride": [
-          "http",
-          "tls",
-          "quic"
-        ],
-        "metadataOnly": false,
-        "routeOnly": true
-      }
+      "port": 10009, "listen": "127.0.0.1", "protocol": "shadowsocks", "tag": "ss-ws",
+      "settings": {"clients": [{"password": "saeka", "method": "aes-256-gcm", "level": 0}]},
+      "streamSettings": {"network": "ws", "wsSettings": {"path": "/ss-saeka"}, "sockopt": {"tcpFastOpen": true, "tcpNoDelay": true, "tcpKeepAliveIdle": 300, "tcpKeepAliveInterval": 30}}
     },
     {
-      "port": 10010,
-      "listen": "127.0.0.1",
-      "protocol": "shadowsocks",
-      "tag": "ss-hu",
-      "settings": {
-        "clients": [
-          {
-            "password": "saeka",
-            "method": "aes-256-gcm",
-            "level": 0,
-            "email": "ss-hu@saeka.local"
-          }
-        ]
-      },
-      "streamSettings": {
-        "network": "httpupgrade",
-        "httpupgradeSettings": {
-          "path": "/ss-saeka-hu",
-          "host": "",
-          "headers": {}
-        },
-        "sockopt": {
-          "mark": 255,
-          "tcpFastOpen": true,
-          "tcpNoDelay": true,
-          "tcpKeepAliveIdle": 300,
-          "tcpKeepAliveInterval": 30
-        }
-      },
-      "sniffing": {
-        "enabled": true,
-        "destOverride": [
-          "http",
-          "tls",
-          "quic"
-        ],
-        "metadataOnly": false,
-        "routeOnly": true
-      }
+      "port": 10010, "listen": "127.0.0.1", "protocol": "shadowsocks", "tag": "ss-hu",
+      "settings": {"clients": [{"password": "saeka", "method": "aes-256-gcm", "level": 0}]},
+      "streamSettings": {"network": "httpupgrade", "httpupgradeSettings": {"path": "/ss-saeka-hu"}, "sockopt": {"tcpFastOpen": true, "tcpNoDelay": true, "tcpKeepAliveIdle": 300, "tcpKeepAliveInterval": 30}}
     },
     {
-      "port": 10011,
-      "listen": "127.0.0.1",
-      "protocol": "shadowsocks",
-      "tag": "ss-xh",
-      "settings": {
-        "clients": [
-          {
-            "password": "saeka",
-            "method": "aes-256-gcm",
-            "level": 0,
-            "email": "ss-xh@saeka.local"
-          }
-        ]
-      },
-      "streamSettings": {
-        "network": "xhttp",
-        "xhttpSettings": {
-          "path": "/ss-saeka-xh",
-          "mode": "auto",
-          "noDelay": true
-        },
-        "sockopt": {
-          "mark": 255,
-          "tcpFastOpen": true,
-          "tcpNoDelay": true,
-          "tcpKeepAliveIdle": 60,
-          "tcpKeepAliveInterval": 15,
-          "acceptProxyProtocol": false
-        }
-      },
-      "sniffing": {
-        "enabled": true,
-        "destOverride": [
-          "http",
-          "tls",
-          "quic"
-        ],
-        "metadataOnly": false,
-        "routeOnly": true
-      }
+      "port": 10011, "listen": "127.0.0.1", "protocol": "shadowsocks", "tag": "ss-xh",
+      "settings": {"clients": [{"password": "saeka", "method": "aes-256-gcm", "level": 0}]},
+      "streamSettings": {"network": "xhttp", "xhttpSettings": {"path": "/ss-saeka-xh", "mode": "auto"}, "sockopt": {"tcpFastOpen": true, "tcpNoDelay": true, "tcpKeepAliveIdle": 300, "tcpKeepAliveInterval": 30}}
     },
     {
-      "port": 10015,
-      "listen": "127.0.0.1",
-      "protocol": "shadowsocks",
-      "tag": "ss-grpc",
-      "settings": {
-        "clients": [
-          {
-            "password": "saeka",
-            "method": "aes-256-gcm",
-            "level": 0,
-            "email": "ss-grpc@saeka.local"
-          }
-        ]
-      },
-      "streamSettings": {
-        "network": "grpc",
-        "grpcSettings": {
-          "serviceName": "ss-saeka-grpc",
-          "multiMode": false,
-          "idleTimeout": 60,
-          "healthCheckTimeout": 20,
-          "permitWithoutStream": false,
-          "initialWindowsSize": 65535
-        },
-        "sockopt": {
-          "mark": 255,
-          "tcpFastOpen": true,
-          "tcpNoDelay": true,
-          "tcpKeepAliveIdle": 60,
-          "tcpKeepAliveInterval": 15
-        }
-      },
-      "sniffing": {
-        "enabled": true,
-        "destOverride": [
-          "http",
-          "tls",
-          "quic"
-        ],
-        "metadataOnly": false,
-        "routeOnly": true
-      }
+      "port": 10015, "listen": "127.0.0.1", "protocol": "shadowsocks", "tag": "ss-grpc",
+      "settings": {"clients": [{"password": "saeka", "method": "aes-256-gcm", "level": 0}]},
+      "streamSettings": {"network": "grpc", "grpcSettings": {"serviceName": "ss-saeka-grpc"}, "sockopt": {"tcpFastOpen": true, "tcpNoDelay": true, "tcpKeepAliveIdle": 300, "tcpKeepAliveInterval": 30}}
     }
   ],
   "outbounds": [
     {
       "protocol": "freedom",
       "tag": "direct",
-      "settings": {
-        "domainStrategy": "UseIPv4",
-        "redirect": "",
-        "userLevel": 0
-      },
-      "streamSettings": {
-        "sockopt": {
-          "mark": 255,
-          "tcpFastOpen": true,
-          "tcpNoDelay": true,
-          "tcpKeepAliveIdle": 60,
-          "tcpKeepAliveInterval": 15
-        }
-      }
+      "settings": { "domainStrategy": "UseIPv4" }
     },
     {
       "protocol": "blackhole",
-      "tag": "block",
-      "settings": {
-        "response": {
-          "type": "none"
-        }
-      }
+      "tag": "block"
     }
   ],
   "routing": {
     "domainStrategy": "IPIfNonMatch",
-    "domainMatcher": "linear",
     "rules": [
       {
         "type": "field",
-        "inboundTag": [
-          "trojan-ws",
-          "trojan-hu",
-          "trojan-xh",
-          "trojan-grpc",
-          "vmess-ws",
-          "vmess-hu",
-          "vmess-xh",
-          "vmess-grpc",
-          "vless-ws",
-          "vless-hu",
-          "vless-xh",
-          "vless-grpc",
-          "ss-ws",
-          "ss-hu",
-          "ss-xh",
-          "ss-grpc"
-        ],
+        "inboundTag": ["trojan-ws", "trojan-hu", "trojan-xh", "trojan-grpc", "vmess-ws", "vmess-hu", "vmess-xh", "vmess-grpc", "vless-ws", "vless-hu", "vless-xh", "vless-grpc", "ss-ws", "ss-hu", "ss-xh", "ss-grpc"],
         "outboundTag": "direct"
       }
     ]
