@@ -17,16 +17,21 @@ RUN wget -q https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linu
     && chmod +x /usr/local/bin/xray \
     && rm -f Xray-linux-64.zip
 
-RUN mkdir -p /etc/xray /etc/envoy /etc/haproxy /usr/local/openresty/nginx/conf
+RUN mkdir -p /etc/xray /etc/envoy /etc/haproxy /usr/local/openresty/nginx/conf /usr/local/openresty/nginx/html /var/www/html
 
 COPY config.json /etc/xray/config.json
 COPY nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
 COPY envoy.yaml /etc/envoy/envoy.yaml
 COPY haproxy.cfg /etc/haproxy/haproxy.cfg
 COPY entrypoint.sh /entrypoint.sh
+COPY index.html /usr/local/openresty/nginx/html/index.html
 COPY index.html /var/www/html/index.html
 
 RUN chmod +x /entrypoint.sh
+
+EXPOSE 8080
+
+ENTRYPOINT ["/entrypoint.sh"]
 
 EXPOSE 8080
 
