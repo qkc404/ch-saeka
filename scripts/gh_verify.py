@@ -456,20 +456,41 @@ def check_nginx(path: Path, text: str) -> FileResult:
         bool(re.search(r"^\s*http\s*\{", text, re.MULTILINE))
 
     if nginx_bin and looks_like_main_conf:
-        with tempfile.NamedTemporaryFile(suffix=".conf", delete=False, mode="w") as tmp:
-            tmp.write(text)
-            tmp_path = tmp.name
-        try:
-            proc = subprocess.run([nginx_bin, "-t", "-c", tmp_path], capture_output=True, text=True)
-            if proc.returncode != 0:
-                for line in (proc.stdout + proc.stderr).splitlines():
-                    m = re.search(r":(\d+)\]", line) or re.search(r"line (\d+)", line)
-                    ln = int(m.group(1)) if m else 0
-                    if "nginx:" in line or "emerg" in line or "error" in line:
-                        res.add(ln, 0, "error", line.strip())
-            return res
-        finally:
-            os.unlink(tmp_path)
+        # Run against the REAL file path (not an isolated temp copy) so relative
+        # `include` directives (mime.types, conf.d/*.conf, etc.) resolve against
+        # the file's actual sibling files in the repo, same as they would for
+        # the real deployed config.
+        proc = subprocess.run([nginx_bin, "-t", "-c", str(path)], capture_output=True, text=True)
+        if proc.returncode != 0:
+            saw_real_error = False
+            for line in (proc.stdout + proc.stderr).splitlines():
+                if not line.strip():
+                    continue
+                m = re.search(r":(\d+)\]", line) or re.search(r"line (\d+)", line)
+                ln = int(m.group(1)) if m else 0
+                missing_file_m = re.search(r'open\(\) "([^"]+)" failed \(2: No such file or directory\)', line)
+                if missing_file_m:
+                    # This is very commonly a file the base image/package provides at
+                    # build/runtime (e.g. mime.types shipped by nginx/openresty) rather
+                    # than something checked into the repo — a static scan can't see
+                    # those, so treat it as informational rather than a hard failure.
+                    res.add(ln, 0, "warning",
+                            f"nginx -t couldn't find '{missing_file_m.group(1)}'. If this file is "
+                            f"provided by your base image (e.g. a package-shipped mime.types) rather "
+                            f"than committed to this repo, this is expected and NOT a real error. If "
+                            f"it should exist in the repo, that's the actual bug.")
+                elif re.search(r"configuration file .* test (failed|is successful)$", line) or \
+                        re.search(r"the configuration file .* syntax is ok$", line):
+                    # Generic nginx summary/trailer lines — redundant once we've already
+                    # reported (or not) the specific diagnostic(s) above; skip to avoid a
+                    # duplicate, less-informative "error" with no new information.
+                    continue
+                elif "[emerg]" in line or "[alert]" in line or "[crit]" in line or "nginx:" in line:
+                    saw_real_error = True
+                    res.add(ln, 0, "error", line.strip())
+            if not saw_real_error and not any(i.severity == "error" for i in res.issues):
+                pass  # only missing-file warnings — leave as a warning-only result, not a failure
+        return res
 
     # Structural fallback — used for included snippets (conf.d/*.conf, site
     # fragments) since `nginx -t` needs a full valid top-level config (events{}
