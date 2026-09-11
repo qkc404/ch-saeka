@@ -16,6 +16,10 @@ deployment *before* you push:
   - Dockerfile / Dockerfile.*                                  -> internal Dockerfile linter
   - HAProxy config (haproxy.cfg, *.cfg under haproxy/, etc.)   -> haproxy -c -f if available,
                                                                    else structural linter
+  - nginx / OpenResty config (nginx.conf, conf.d/*.conf, etc.) -> nginx -t if available,
+                                                                   else structural linter
+  - Envoy config (envoy.yaml, *envoy*.yml)                     -> envoy --mode validate if available,
+                                                                   else YAML + schema-aware structural checks
   - .env files                                                 -> KEY=VALUE syntax check
   - TOML (.toml)                                               -> tomllib parse (py3.11+)
 
@@ -438,6 +442,233 @@ def check_haproxy(path: Path, text: str) -> FileResult:
     return res
 
 
+NGINX_BLOCK_DIRECTIVES = {
+    "http", "server", "location", "events", "stream", "upstream", "if",
+    "map", "types", "geo", "limit_except", "server_names_hash_bucket_size",
+}
+
+
+def check_nginx(path: Path, text: str) -> FileResult:
+    res = FileResult(str(path), "nginx", True)
+
+    nginx_bin = shutil.which("nginx")
+    looks_like_main_conf = bool(re.search(r"^\s*events\s*\{", text, re.MULTILINE)) and \
+        bool(re.search(r"^\s*http\s*\{", text, re.MULTILINE))
+
+    if nginx_bin and looks_like_main_conf:
+        with tempfile.NamedTemporaryFile(suffix=".conf", delete=False, mode="w") as tmp:
+            tmp.write(text)
+            tmp_path = tmp.name
+        try:
+            proc = subprocess.run([nginx_bin, "-t", "-c", tmp_path], capture_output=True, text=True)
+            if proc.returncode != 0:
+                for line in (proc.stdout + proc.stderr).splitlines():
+                    m = re.search(r":(\d+)\]", line) or re.search(r"line (\d+)", line)
+                    ln = int(m.group(1)) if m else 0
+                    if "nginx:" in line or "emerg" in line or "error" in line:
+                        res.add(ln, 0, "error", line.strip())
+            return res
+        finally:
+            os.unlink(tmp_path)
+
+    # Structural fallback — used for included snippets (conf.d/*.conf, site
+    # fragments) since `nginx -t` needs a full valid top-level config (events{}
+    # + http{}) to run at all, and for environments without the nginx binary.
+    depth = 0
+    line_no_opened_at = []
+    in_block_comment = False  # nginx has no block comments, but keep symmetry
+    for i, raw in enumerate(text.splitlines(), start=1):
+        line = raw
+        # strip inline comments (naive: '#' not inside quotes)
+        if "#" in line:
+            # don't strip '#' inside quoted strings
+            in_q = None
+            cut = len(line)
+            for idx, ch in enumerate(line):
+                if ch in ("'", '"'):
+                    if in_q is None:
+                        in_q = ch
+                    elif in_q == ch:
+                        in_q = None
+                elif ch == "#" and in_q is None:
+                    cut = idx
+                    break
+            line = line[:cut]
+        stripped = line.strip()
+        if not stripped:
+            continue
+
+        opens = stripped.count("{")
+        closes = stripped.count("}")
+        depth += opens
+        for _ in range(opens):
+            line_no_opened_at.append(i)
+        for _ in range(closes):
+            if line_no_opened_at:
+                line_no_opened_at.pop()
+        depth -= closes
+        if depth < 0:
+            res.add(i, 1, "error", "Unmatched closing '}' — no corresponding open brace")
+            depth = 0
+            continue
+
+        ends_with_block = stripped.endswith("{")
+        ends_with_close = stripped == "}" or stripped.endswith("}")
+        if ends_with_block:
+            continue
+        if ends_with_close:
+            continue
+        if not stripped.endswith(";"):
+            res.add(i, len(raw), "error",
+                    "Directive is not terminated with ';' (and does not open/close a block)")
+
+    if depth != 0:
+        unclosed_line = line_no_opened_at[0] if line_no_opened_at else 0
+        res.add(unclosed_line, 0, "error", f"{depth} unclosed '{{' block(s) — missing matching '}}'")
+
+    if not looks_like_main_conf:
+        res.add(0, 0, "warning",
+                "This doesn't look like a complete nginx main config (no top-level 'events {}' + "
+                "'http {}'), so only brace/semicolon structure was checked, not a full 'nginx -t' — "
+                "normal for included conf.d/*.conf snippets.")
+    elif not nginx_bin:
+        res.add(0, 0, "warning", "nginx binary not found — used a structural fallback linter, "
+                                 "not a full 'nginx -t'. Install nginx for a definitive check.")
+
+    return res
+
+
+ENVOY_TOP_KEYS = {
+    "admin", "static_resources", "dynamic_resources", "node", "cluster_manager",
+    "hds_config", "flags_path", "stats_sinks", "stats_config", "watchdogs",
+    "tracing", "layered_runtime", "bootstrap_extensions", "fatal_actions",
+    "config_sources", "default_config_source", "default_socket_interface",
+    "application_log_config", "overload_manager", "header_prefix", "stats_flush_on_admin",
+}
+
+
+def check_envoy(path: Path, text: str) -> FileResult:
+    res = FileResult(str(path), "envoy", True)
+    if yaml is None:
+        res.add(0, 0, "error", "PyYAML not installed — cannot validate Envoy config")
+        return res
+
+    try:
+        doc = yaml.safe_load(text)
+    except yaml.YAMLError as e:
+        mark = getattr(e, "problem_mark", None)
+        line = (mark.line + 1) if mark else 0
+        col = (mark.column + 1) if mark else 0
+        problem = getattr(e, "problem", str(e))
+        res.add(line, col, "error", f"YAML syntax error: {problem}")
+        return res
+
+    envoy_bin = shutil.which("envoy")
+    if envoy_bin:
+        with tempfile.NamedTemporaryFile(suffix=".yaml", delete=False, mode="w") as tmp:
+            tmp.write(text)
+            tmp_path = tmp.name
+        try:
+            proc = subprocess.run(
+                [envoy_bin, "--mode", "validate", "-c", tmp_path, "--log-level", "critical"],
+                capture_output=True, text=True, timeout=30,
+            )
+            if proc.returncode != 0:
+                out = (proc.stdout + proc.stderr).strip()
+                for line in out.splitlines():
+                    if line.strip():
+                        res.add(0, 0, "error", line.strip())
+                if not out:
+                    res.add(0, 0, "error", "envoy --mode validate failed (no diagnostic output captured)")
+            return res
+        except subprocess.TimeoutExpired:
+            res.add(0, 0, "warning", "envoy --mode validate timed out — falling back to structural checks")
+        finally:
+            os.unlink(tmp_path)
+
+    # Structural / schema-aware fallback
+    if not isinstance(doc, dict):
+        res.add(0, 0, "error", "Envoy config root must be a mapping")
+        return res
+
+    keys = set(doc.keys())
+    if not (keys & {"static_resources", "dynamic_resources", "admin", "node"}):
+        res.add(0, 0, "warning",
+                "Doesn't look like an Envoy bootstrap config — none of 'static_resources', "
+                "'dynamic_resources', 'admin', or 'node' are present at the top level")
+
+    unknown_top = keys - ENVOY_TOP_KEYS
+    for k in unknown_top:
+        res.add(_line_of_key(text, str(k)), 0, "warning",
+                f"Unrecognized top-level key '{k}' for an Envoy bootstrap config")
+
+    static = doc.get("static_resources")
+    if isinstance(static, dict):
+        listeners = static.get("listeners")
+        if listeners is not None:
+            if not isinstance(listeners, list):
+                res.add(_line_of_key(text, "listeners"), 0, "error", "'listeners' must be a list")
+            else:
+                for idx, lst in enumerate(listeners):
+                    if not isinstance(lst, dict):
+                        res.add(0, 0, "error", f"listeners[{idx}] must be a mapping")
+                        continue
+                    if "name" not in lst:
+                        res.add(0, 0, "warning", f"listeners[{idx}] has no 'name' — harder to identify in logs/stats")
+                    if "address" not in lst:
+                        res.add(0, 0, "error", f"listeners[{idx}] is missing required field 'address'")
+                    if "filter_chains" not in lst and "filter_chain" not in lst:
+                        res.add(0, 0, "error",
+                                f"listeners[{idx}] is missing 'filter_chains' — a listener with no "
+                                f"filter chain will accept connections and do nothing with them")
+
+        clusters = static.get("clusters")
+        if clusters is not None:
+            if not isinstance(clusters, list):
+                res.add(_line_of_key(text, "clusters"), 0, "error", "'clusters' must be a list")
+            else:
+                cluster_names = set()
+                for idx, cl in enumerate(clusters):
+                    if not isinstance(cl, dict):
+                        res.add(0, 0, "error", f"clusters[{idx}] must be a mapping")
+                        continue
+                    if "name" not in cl:
+                        res.add(0, 0, "error", f"clusters[{idx}] is missing required field 'name'")
+                    else:
+                        cluster_names.add(cl["name"])
+                    if "type" not in cl and "cluster_type" not in cl:
+                        res.add(0, 0, "warning",
+                                f"clusters[{idx}] has no 'type' (e.g. STATIC/STRICT_DNS/LOGICAL_DNS/EDS) — "
+                                f"Envoy will reject this at startup")
+                    has_load_assignment = "load_assignment" in cl
+                    has_legacy_hosts = "hosts" in cl
+                    if not has_load_assignment and not has_legacy_hosts and cl.get("type") != "EDS":
+                        res.add(0, 0, "warning",
+                                f"clusters[{idx}] has no 'load_assignment' (or legacy 'hosts') — "
+                                f"no upstream endpoints are defined for this cluster")
+
+                # cross-check listener filter_chains referencing clusters, best-effort
+                listeners = static.get("listeners") or []
+                referenced = set()
+                for lst in listeners if isinstance(listeners, list) else []:
+                    referenced |= set(re.findall(r"cluster:\s*([A-Za-z0-9_.\-]+)", yaml.safe_dump(lst)))
+                for name in referenced:
+                    if name not in cluster_names:
+                        res.add(0, 0, "error",
+                                f"A filter chain references cluster '{name}', which has no matching "
+                                f"entry in 'clusters'")
+
+    admin = doc.get("admin")
+    if isinstance(admin, dict) and "address" not in admin:
+        res.add(_line_of_key(text, "admin"), 0, "warning", "'admin' block is present but has no 'address'")
+
+    if not envoy_bin:
+        res.add(0, 0, "warning", "envoy binary not found — used a structural/schema fallback linter, "
+                                 "not a full 'envoy --mode validate'. Install envoy for a definitive check.")
+
+    return res
+
+
 # --------------------------------------------------------------------------
 # File dispatch
 # --------------------------------------------------------------------------
@@ -453,6 +684,12 @@ def classify(path: Path):
         return "dotenv"
     if "haproxy" in posix.lower() and suffix in (".cfg", ".conf", ""):
         return "haproxy"
+    if "envoy" in posix.lower() and suffix in (".yml", ".yaml"):
+        return "envoy"
+    if name in ("nginx.conf", "openresty.conf") or (
+        suffix == ".conf" and re.search(r"/(nginx|openresty|conf\.d|sites-(available|enabled))/", posix.lower())
+    ):
+        return "nginx"
     if suffix in (".yml", ".yaml"):
         return "yaml"
     if suffix == ".json":
@@ -478,6 +715,8 @@ CHECKERS = {
     "dockerfile": check_dockerfile,
     "dotenv": check_dotenv,
     "haproxy": check_haproxy,
+    "nginx": check_nginx,
+    "envoy": check_envoy,
 }
 
 
@@ -566,7 +805,8 @@ def main():
     ap.add_argument("path", nargs="?", default=".", help="Directory to scan (default: current dir)")
     ap.add_argument("--json", action="store_true", help="Machine-readable JSON output")
     ap.add_argument("--only", help="Comma-separated list of checkers to run "
-                                    "(yaml,json,python,shell,javascript,toml,dockerfile,dotenv,haproxy)")
+                                    "(yaml,json,python,shell,javascript,toml,dockerfile,dotenv,"
+                                    "haproxy,nginx,envoy)")
     ap.add_argument("--exclude", help="Comma-separated extra directory names to exclude")
     args = ap.parse_args()
 
