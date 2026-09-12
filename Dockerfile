@@ -1,48 +1,39 @@
 FROM ubuntu:22.04
+
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y \
-    openssh-server openssh-client nginx python3 cmake build-essential git wget curl ca-certificates \
-    openssl unzip jq netcat-openbsd dnsutils iputils-ping gnupg lsb-release \
+    curl wget unzip ca-certificates gnupg lsb-release haproxy git \
+    && mkdir -p /etc/apt/keyrings /usr/share/keyrings \
+    && curl -fsSL https://openresty.org/package/pubkey.gpg | gpg --dearmor -o /usr/share/keyrings/openresty.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/openresty.gpg] http://openresty.org/package/ubuntu $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/openresty.list \
+    && curl -fsSL https://apt.envoyproxy.io/signing.key | gpg --dearmor -o /etc/apt/keyrings/envoy-keyring.gpg \
+    && echo "deb [arch=amd64,arm64 signed-by=/etc/apt/keyrings/envoy-keyring.gpg] https://apt.envoyproxy.io $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/envoy.list \
+    && apt-get update && apt-get install -y openresty envoy \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Build BadVPN UDPGW for Gaming UDP Support
-RUN git clone https://github.com/ambrop72/badvpn.git /tmp/badvpn \
-    && cd /tmp/badvpn && mkdir build && cd build \
-    && cmake .. -DBUILD_NOTHING_BY_DEFAULT=1 -DBUILD_UDPGW=1 \
-    && make install && rm -rf /tmp/badvpn
+RUN wget -q https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip \
+    && unzip Xray-linux-64.zip -d /usr/local/bin/ \
+    && chmod +x /usr/local/bin/xray \
+    && rm -f Xray-linux-64.zip
 
-# Install XRAY Core
-RUN mkdir -p /etc/xray /usr/local/share/xray && \
-    wget -q https://github.com/XTLS/Xray-core/releases/download/v1.8.7/Xray-linux-64.zip -O /tmp/xray.zip && \
-    unzip -q /tmp/xray.zip -d /tmp/xray && \
-    mv /tmp/xray/xray /usr/local/bin/xray && \
-    mv /tmp/xray/geosite.dat /usr/local/share/xray/ 2>/dev/null || true && \
-    mv /tmp/xray/geoip.dat /usr/local/share/xray/ 2>/dev/null || true && \
-    chmod +x /usr/local/bin/xray && \
-    rm -rf /tmp/xray /tmp/xray.zip
+RUN mkdir -p /etc/xray /etc/envoy /etc/haproxy /usr/local/openresty/nginx/conf /usr/local/openresty/nginx/html
 
-# Setup SSH and Saeka User
-RUN mkdir -p /var/run/sshd
-RUN useradd -m -s /bin/bash saeka && echo 'saeka:saeka' | chpasswd
-RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
-RUN sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
-RUN sed -i 's/#PubkeyAuthentication yes/PubkeyAuthentication yes/' /etc/ssh/sshd_config
-RUN sed -i 's/#X11Forwarding no/X11Forwarding yes/' /etc/ssh/sshd_config
-RUN echo "AllowAgentForwarding yes" >> /etc/ssh/sshd_config
-RUN echo "AllowTcpForwarding yes" >> /etc/ssh/sshd_config
-RUN echo "GatewayPorts yes" >> /etc/ssh/sshd_config
-RUN echo "PermitTunnel yes" >> /etc/ssh/sshd_config
-
-# Add Custom Aesthetic Banner
-COPY banner.txt /etc/ssh/banner.txt
-RUN echo "Banner /etc/ssh/banner.txt" >> /etc/ssh/sshd_config
-
-COPY nginx.conf /etc/nginx/nginx.conf
-COPY xray-config.json /etc/xray/config.json
+COPY config.json /etc/xray/config.json
+COPY nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
+COPY envoy.yaml /etc/envoy/envoy.yaml
+COPY haproxy.cfg /etc/haproxy/haproxy.cfg
 COPY entrypoint.sh /entrypoint.sh
+COPY index.html /usr/local/openresty/nginx/html/index.html
+
+# Fail the build (instead of silently shipping a broken image) if config.json
+# is invalid. This is what let the container "deploy successfully" in the
+# past while Xray failed to start and every inbound returned EOF/refused.
+RUN /usr/local/bin/xray run -test -config /etc/xray/config.json \
+    || (echo "FATAL: /etc/xray/config.json failed validation" && exit 1)
+
 RUN chmod +x /entrypoint.sh
 
-EXPOSE 8080 22 10086 10087
+EXPOSE 8080
 
 ENTRYPOINT ["/entrypoint.sh"]
