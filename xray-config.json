@@ -26,7 +26,7 @@
       "settings": {
         "clients": [
           {
-            "id": "chsaeka-vless-uuid-gaming-001",
+            "id": "chsaeka",
             "flow": "xtls-rprx-vision",
             "level": 0
           }
@@ -59,7 +59,7 @@
       "settings": {
         "clients": [
           {
-            "password": "chsaeka-trojan-password-gaming-001",
+            "password": "chsaeka",
             "level": 0,
             "email": "saeka@chgaming"
           }
@@ -89,7 +89,7 @@
       "tag": "ss-tcp",
       "settings": {
         "method": "chacha20-poly1305",
-        "password": "chsaeka-shadowsocks-gaming",
+        "password": "chsaeka",
         "network": "tcp,udp"
       }
     }
