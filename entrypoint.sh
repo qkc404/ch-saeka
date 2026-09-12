@@ -30,8 +30,8 @@ log_warn() {
 # ============================================================================
 log_info "Generating SSH Host Keys..."
 ssh-keygen -A
-mkdir -p /var/run/sshd
-mkdir -p /var/log/xray
+RUN mkdir -p /var/run/sshd
+RUN mkdir -p /var/log/xray
 log_success "SSH Host Keys generated"
 
 # ============================================================================
