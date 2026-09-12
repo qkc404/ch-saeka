@@ -1,0 +1,110 @@
+{
+  "log": {
+    "loglevel": "info",
+    "access": "/var/log/xray/access.log",
+    "error": "/var/log/xray/error.log"
+  },
+  "routing": {
+    "rules": [
+      {
+        "type": "field",
+        "inboundTag": ["vless-tls-tcp"],
+        "outboundTag": "freedom"
+      },
+      {
+        "type": "field",
+        "inboundTag": ["trojan-tls-tcp"],
+        "outboundTag": "freedom"
+      }
+    ]
+  },
+  "inbounds": [
+    {
+      "port": 10086,
+      "protocol": "vless",
+      "tag": "vless-tls-tcp",
+      "settings": {
+        "clients": [
+          {
+            "id": "chsaeka-vless-uuid-gaming-001",
+            "flow": "xtls-rprx-vision",
+            "level": 0
+          }
+        ],
+        "decryption": "none"
+      },
+      "streamSettings": {
+        "network": "tcp",
+        "tcpSettings": {
+          "acceptProxyProtocol": false
+        },
+        "security": "tls",
+        "tlsSettings": {
+          "alpn": ["http/1.1", "h2"],
+          "minVersion": "1.2",
+          "cipherSuites": "TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256",
+          "certificates": [
+            {
+              "certificateFile": "/etc/xray/certs/cert.pem",
+              "keyFile": "/etc/xray/certs/key.pem"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "port": 10087,
+      "protocol": "trojan",
+      "tag": "trojan-tls-tcp",
+      "settings": {
+        "clients": [
+          {
+            "password": "chsaeka-trojan-password-gaming-001",
+            "level": 0,
+            "email": "saeka@chgaming"
+          }
+        ]
+      },
+      "streamSettings": {
+        "network": "tcp",
+        "tcpSettings": {
+          "acceptProxyProtocol": false
+        },
+        "security": "tls",
+        "tlsSettings": {
+          "alpn": ["http/1.1", "h2"],
+          "minVersion": "1.2",
+          "certificates": [
+            {
+              "certificateFile": "/etc/xray/certs/cert.pem",
+              "keyFile": "/etc/xray/certs/key.pem"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "port": 2222,
+      "protocol": "shadowsocks",
+      "tag": "ss-tcp",
+      "settings": {
+        "method": "chacha20-poly1305",
+        "password": "chsaeka-shadowsocks-gaming",
+        "network": "tcp,udp"
+      }
+    }
+  ],
+  "outbounds": [
+    {
+      "protocol": "freedom",
+      "tag": "freedom",
+      "settings": {
+        "domainStrategy": "UseIP"
+      }
+    },
+    {
+      "protocol": "blackhole",
+      "tag": "block"
+    }
+  ]
+}
