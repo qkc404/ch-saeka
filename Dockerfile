@@ -3,7 +3,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y \
     openssh-server openssh-client nginx python3 cmake build-essential git wget curl ca-certificates \
-    openssl unzip jq netcat-openbsd dnsutils iputils-ping \
+    openssl unzip jq netcat-openbsd dnsutils iputils-ping gnupg lsb-release \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Build BadVPN UDPGW for Gaming UDP Support
@@ -13,11 +13,14 @@ RUN git clone https://github.com/ambrop72/badvpn.git /tmp/badvpn \
     && make install && rm -rf /tmp/badvpn
 
 # Install XRAY Core
-RUN mkdir -p /etc/xray && \
+RUN mkdir -p /etc/xray /usr/local/share/xray && \
     wget -q https://github.com/XTLS/Xray-core/releases/download/v1.8.7/Xray-linux-64.zip -O /tmp/xray.zip && \
-    unzip -q /tmp/xray.zip -d /usr/local/bin && \
+    unzip -q /tmp/xray.zip -d /tmp/xray && \
+    mv /tmp/xray/xray /usr/local/bin/xray && \
+    mv /tmp/xray/geosite.dat /usr/local/share/xray/ 2>/dev/null || true && \
+    mv /tmp/xray/geoip.dat /usr/local/share/xray/ 2>/dev/null || true && \
     chmod +x /usr/local/bin/xray && \
-    rm /tmp/xray.zip
+    rm -rf /tmp/xray /tmp/xray.zip
 
 # Setup SSH and Saeka User
 RUN mkdir -p /var/run/sshd
@@ -25,7 +28,6 @@ RUN useradd -m -s /bin/bash saeka && echo 'saeka:saeka' | chpasswd
 RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 RUN sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
 RUN sed -i 's/#PubkeyAuthentication yes/PubkeyAuthentication yes/' /etc/ssh/sshd_config
-RUN sed -i 's/#PermitEmptyPasswords no/PermitEmptyPasswords no/' /etc/ssh/sshd_config
 RUN sed -i 's/#X11Forwarding no/X11Forwarding yes/' /etc/ssh/sshd_config
 RUN echo "AllowAgentForwarding yes" >> /etc/ssh/sshd_config
 RUN echo "AllowTcpForwarding yes" >> /etc/ssh/sshd_config
